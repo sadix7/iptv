@@ -1,0 +1,152 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --color-background: #0a0a0a;
+  --color-primary: #F5A623;
+  --color-primary-dark: #D4891A;
+  --color-secondary: #FFD166;
+  --color-card: rgba(255, 255, 255, 0.04);
+  --color-card-border: rgba(245, 166, 35, 0.12);
+}
+
+@layer base {
+  html, body {
+    background-color: #0a0a0a;
+    @apply text-white antialiased selection:bg-primary/30;
+  }
+  body {
+    font-family: 'Outfit', system-ui, -apple-system, sans-serif;
+    min-height: 100%;
+  }
+}
+
+.glass-card {
+  @apply bg-card backdrop-blur-xl border border-card-border rounded-2xl;
+}
+
+.gradient-text {
+  @apply bg-clip-text text-transparent;
+  background-image: linear-gradient(135deg, #F5A623 0%, #FFD166 50%, #D4891A 100%);
+}
+
+.hero-gradient {
+  background: radial-gradient(circle at 50% 40%, rgba(245, 166, 35, 0.12) 0%, rgba(10, 10, 10, 0) 70%);
+}
+
+.glow {
+  box-shadow: 0 0 40px rgba(245, 166, 35, 0.25);
+}
+
+.glow-gold {
+  box-shadow: 0 0 60px rgba(245, 166, 35, 0.15), 0 0 120px rgba(245, 166, 35, 0.08);
+}
+
+.btn-primary {
+  @apply text-black transition-all shadow-lg;
+  background: linear-gradient(135deg, #F5A623 0%, #FFD166 100%);
+}
+
+.btn-primary:hover {
+  background: linear-gradient(135deg, #FFD166 0%, #F5A623 100%);
+  box-shadow: 0 8px 32px rgba(245, 166, 35, 0.35);
+}
+
+@utility no-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 9999px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(245, 166, 35, 0.25);
+  border-radius: 9999px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(245, 166, 35, 0.45);
+}
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(245, 166, 35, 0.25) rgba(255, 255, 255, 0.02);
+}
+
+@keyframes slideInFromBottom {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.animate-slide-in {
+  animation: slideInFromBottom 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes goldPulse {
+  0%, 100% { box-shadow: 0 0 20px rgba(245, 166, 35, 0.2); }
+  50% { box-shadow: 0 0 40px rgba(245, 166, 35, 0.5); }
+}
+
+.gold-pulse {
+  animation: goldPulse 2s ease-in-out infinite;
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% center; }
+  100% { background-position: 200% center; }
+}
+
+.shimmer-text {
+  background: linear-gradient(90deg, #F5A623 0%, #FFD166 25%, #fff 50%, #FFD166 75%, #F5A623 100%);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: shimmer 3s linear infinite;
+}
+
+/* WC Table Styles */
+.wc-table {
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.wc-table th {
+  background: rgba(245, 166, 35, 0.08);
+  color: #F5A623;
+  font-weight: 700;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 10px 12px;
+  border-bottom: 1px solid rgba(245, 166, 35, 0.2);
+}
+
+.wc-table td {
+  padding: 9px 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.wc-table tr:hover td {
+  background: rgba(245, 166, 35, 0.04);
+}
+
+.wc-table tr.today-match td {
+  background: rgba(245, 166, 35, 0.08);
+  border-bottom: 1px solid rgba(245, 166, 35, 0.15);
+}
