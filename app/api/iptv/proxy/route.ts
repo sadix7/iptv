@@ -1,15 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
-import { fetch as undiciFetch, Agent } from "undici";
-
-// Create a custom Undici Agent to handle legacy IPTV servers
-// that use older TLS versions or legacy cipher suites.
-const sslAgent = new Agent({
-  connect: {
-    rejectUnauthorized: false,
-    ciphers: "DEFAULT:@SECLEVEL=0",
-    minVersion: "TLSv1",
-  },
-});
+import { NextRequest } from "next/server";
 
 function resolveUrl(relative: string, base: string): string {
   try {
@@ -24,56 +13,47 @@ export async function GET(request: NextRequest) {
   const targetUrl = searchParams.get("url");
 
   if (!targetUrl) {
-    return NextResponse.json({ error: "Missing 'url' parameter" }, { status: 400 });
+    return Response.json({ error: "Missing 'url' parameter" }, { status: 400 });
   }
 
   try {
-    // Build upstream headers — forward relevant client headers for compatibility
     const upstreamHeaders: Record<string, string> = {
       "User-Agent":
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36",
       "Accept": "*/*",
       "Accept-Language": "en-US,en;q=0.9",
-      "Connection": "keep-alive",
     };
 
-    // Forward Range header from client (HLS.js sends Range: bytes=0-)
     const rangeHeader = request.headers.get("range");
     if (rangeHeader) {
       upstreamHeaders["Range"] = rangeHeader;
     }
 
-    // Set Referer to the stream's origin for servers that check it
     try {
       const parsedTarget = new URL(targetUrl);
       upstreamHeaders["Referer"] = parsedTarget.origin + "/";
       upstreamHeaders["Origin"] = parsedTarget.origin;
-    } catch {
-      // Invalid URL, skip Referer
-    }
+    } catch {}
 
-    // Fetch with a timeout to avoid hanging on unresponsive servers
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 9000);
 
-    const response = await undiciFetch(targetUrl, {
+    const response = await fetch(targetUrl, {
       headers: upstreamHeaders,
       signal: controller.signal,
       redirect: "follow",
-      dispatcher: sslAgent,
     });
     clearTimeout(timeout);
 
     if (!response.ok && response.status !== 206) {
-      return NextResponse.json(
+      return Response.json(
         { error: `Failed to fetch from target URL (Status ${response.status})` },
         { status: response.status }
       );
     }
 
     const contentType = response.headers.get("content-type") || "";
-    
-    // Determine if it is an M3U8/M3U playlist
+
     const isM3U8 =
       contentType.toLowerCase().includes("mpegurl") ||
       contentType.toLowerCase().includes("mpeg-url") ||
@@ -104,7 +84,6 @@ export async function GET(request: NextRequest) {
         if (!trimmed) return line;
 
         if (trimmed.startsWith("#")) {
-          // Rewrite any URI attributes within tags, e.g., URI="..." or URI='...' or URI=...
           return line.replace(
             /URI=(?:"([^"]+)"|'([^']+)'|([^,\s]+))/g,
             (match, qDouble, qSingle, unquoted) => {
@@ -115,7 +94,6 @@ export async function GET(request: NextRequest) {
             }
           );
         } else {
-          // Rewrite the direct stream/segment URL line
           const resolved = resolveUrl(trimmed, targetUrl);
           return `${proxyBaseUrl}?url=${encodeURIComponent(resolved)}`;
         }
@@ -132,7 +110,6 @@ export async function GET(request: NextRequest) {
         },
       });
     } else {
-      // It's a segment (like .ts, .m4s, .mp4, etc.) or key file. Stream the response directly.
       const headers: Record<string, string> = {
         "Content-Type": contentType || "application/octet-stream",
         "Access-Control-Allow-Origin": "*",
@@ -140,7 +117,6 @@ export async function GET(request: NextRequest) {
         "Access-Control-Expose-Headers": "Content-Range, Content-Length, Accept-Ranges",
       };
 
-      // Forward critical response headers from upstream
       const contentLength = response.headers.get("content-length");
       if (contentLength) {
         headers["Content-Length"] = contentLength;
@@ -155,7 +131,7 @@ export async function GET(request: NextRequest) {
       if (acceptRanges) {
         headers["Accept-Ranges"] = acceptRanges;
       }
-      
+
       const cacheControl = response.headers.get("cache-control");
       if (cacheControl) {
         headers["Cache-Control"] = cacheControl;
@@ -163,15 +139,16 @@ export async function GET(request: NextRequest) {
         headers["Cache-Control"] = "public, max-age=3600";
       }
 
-      return new Response(response.body as unknown as ReadableStream, {
-        status: response.status, // Preserves 206 Partial Content for Range requests
+      const buffer = await response.arrayBuffer();
+
+      return new Response(buffer, {
+        status: response.status,
         headers,
       });
     }
   } catch (error) {
-    // Handle abort/timeout specifically
     if (error instanceof DOMException && error.name === "AbortError") {
-      return NextResponse.json(
+      return Response.json(
         { error: "Upstream server timed out (9s)" },
         { status: 504 }
       );
@@ -179,14 +156,13 @@ export async function GET(request: NextRequest) {
     console.error("Proxy error:", error);
     const errorMessage = error instanceof Error ? error.message : "Failed to fetch from target URL";
     const errorCause = error instanceof Error && error.cause ? String(error.cause) : undefined;
-    return NextResponse.json(
+    return Response.json(
       { error: errorMessage, cause: errorCause },
       { status: 500 }
     );
   }
 }
 
-// Handle CORS preflight for HLS.js Range requests
 export async function OPTIONS() {
   return new Response(null, {
     status: 204,
