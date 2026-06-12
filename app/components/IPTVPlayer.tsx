@@ -265,13 +265,17 @@ export default function IPTVPlayer({ activePlaylistId, onPlaylistChange }: IPTVP
   const isMutedRef = useRef(isMuted);
   const volumeRef = useRef(volume);
   const loadedUrlRef = useRef<string | null>(null);
+  const proxyModeRef = useRef<Set<string>>(new Set());
   const [playerHeight, setPlayerHeight] = useState(0);
   const [isLargeScreen, setIsLargeScreen] = useState(false);
   const [viewerCount, setViewerCount] = useState<number | null>(null);
 
   const resolveStreamUrl = useCallback((url: string) => {
     if (url && (url.startsWith("http://") || url.startsWith("https://"))) {
-      return `/api/iptv/proxy?url=${encodeURIComponent(url)}`;
+      if (proxyModeRef.current.has(url)) {
+        return `/api/iptv/proxy?url=${encodeURIComponent(url)}`;
+      }
+      return url;
     }
     return url;
   }, []);
@@ -1208,6 +1212,8 @@ export default function IPTVPlayer({ activePlaylistId, onPlaylistChange }: IPTVP
             shakaRef.current = player;
             await player.attach(video);
 
+            const useProxy = proxyModeRef.current.has(chan.url);
+
             player.configure({
               manifest: {
                 defaultPresentationDelay: 8,
@@ -1221,7 +1227,7 @@ export default function IPTVPlayer({ activePlaylistId, onPlaylistChange }: IPTVP
                 stallEnabled: true,
                 stallThreshold: 1,
                 stallSkip: 0.15,
-                retryParameters: { maxAttempts: 3, baseDelay: 200, backoffFactor: 1.5, fuzzFactor: 0.25, timeout: 10000 },
+                retryParameters: { maxAttempts: useProxy ? 12 : 2, baseDelay: 200, backoffFactor: 1.5, fuzzFactor: 0.25, timeout: 10000 },
               },
               abr: {
                 enabled: true,
@@ -1243,7 +1249,26 @@ export default function IPTVPlayer({ activePlaylistId, onPlaylistChange }: IPTVP
               });
             }
 
+            if (useProxy) {
+              const netEngine = player.getNetworkingEngine();
+              if (netEngine) {
+                netEngine.registerRequestFilter((type: any, request: { uris: string[] }) => {
+                  const url = request.uris[0];
+                  if (url && (url.startsWith("http://") || url.startsWith("https://"))) {
+                    request.uris[0] = `/api/iptv/proxy?url=${encodeURIComponent(url)}`;
+                  }
+                });
+              }
+            }
+
             player.addEventListener("error", (event: any) => {
+              if (!useProxy && !proxyModeRef.current.has(chan.url)) {
+                proxyModeRef.current.add(chan.url);
+                loadedUrlRef.current = null;
+                setRetryKey((k) => k + 1);
+                return;
+              }
+              if (loadedUrlRef.current === null) return;
               const detail = event?.detail;
               console.warn("[SHAKA] DASH playback error:", JSON.stringify(detail));
               setPlayerStatus("error");
@@ -1300,7 +1325,13 @@ export default function IPTVPlayer({ activePlaylistId, onPlaylistChange }: IPTVP
             });
           } catch (err) {
             if (loadedUrlRef.current !== chan.url) return;
-            console.warn("[SHAKA] Load error:", err);
+            if (!proxyModeRef.current.has(chan.url)) {
+              proxyModeRef.current.add(chan.url);
+              loadedUrlRef.current = null;
+              setRetryKey((k) => k + 1);
+              return;
+            }
+            console.error("[SHAKA] Load error:", err);
             setPlayerStatus("error");
           }
         })();
@@ -1362,8 +1393,14 @@ export default function IPTVPlayer({ activePlaylistId, onPlaylistChange }: IPTVP
           });
         });
 
-        hls.on(Hls.Events.ERROR, (_event: string, data: { fatal: boolean; type: string }) => {
+        hls.on(Hls.Events.ERROR, (_event: string, data: { fatal: boolean; type: string; details: string }) => {
           if (data.fatal) {
+            if (data.type === Hls.ErrorTypes.NETWORK_ERROR && !proxyModeRef.current.has(chan.url)) {
+              proxyModeRef.current.add(chan.url);
+              loadedUrlRef.current = null;
+              setRetryKey((k) => k + 1);
+              return;
+            }
             switch (data.type) {
               case Hls.ErrorTypes.NETWORK_ERROR:
                 if (hlsRetryCount < MAX_HLS_RETRIES) {

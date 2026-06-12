@@ -138,8 +138,8 @@ export async function GET(request: NextRequest) {
             }
           );
         } else {
-          // Return segment URL pointing directly to CDN — no proxy
-          return resolveUrl(trimmed, targetUrl);
+          const resolved = resolveUrl(trimmed, targetUrl);
+          return `${proxyBaseUrl}?url=${encodeURIComponent(resolved)}`;
         }
       });
 
