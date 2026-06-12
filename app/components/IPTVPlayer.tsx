@@ -51,19 +51,36 @@ interface Playlist {
   channels: Channel[];
 }
 
-const getPlayableUrl = (url: string) => {
-  if (url && (url.startsWith("http://") || url.startsWith("https://"))) {
-    return `/api/iptv/proxy?url=${encodeURIComponent(url)}`;
-  }
-  return url;
-};
-
 interface IPTVPlayerProps {
   activePlaylistId: string;
   onPlaylistChange: (id: string) => void;
 }
 
 const WORLDCUP_LIVE_CHANNELS: Channel[] = [
+  {
+    id: "wcl-caze-tv",
+    name: "CAZE TV",
+    logo: "https://images.seeklogo.com/logo-png/61/1/cazetv-logo-png_seeklogo-619708.png",
+    group: "FIFA World Cup",
+    url: "https://dfr80qz435crc.cloudfront.net/MNOP/Amagi/Caze/Caze_TV_BR/Caze_TV.m3u8",
+    type: "hls",
+  },
+  {
+    id: "wcl-bein-sports-1",
+    name: "BEIN Sports 1",
+    logo: "https://images.seeklogo.com/logo-png/48/1/bein-sports-1-logo-png_seeklogo-481583.png",
+    group: "FIFA World Cup",
+    url: "https://1nyaler.streamhostingcdn.top/stream/23/index.m3u8",
+    type: "hls",
+  },
+  {
+    id: "wcl-win-sports",
+    name: "Win Sports",
+    logo: "https://images.seeklogo.com/logo-png/25/1/win-sports-logo-png_seeklogo-259337.png",
+    group: "FIFA World Cup",
+    url: "https://1nyaler.streamhostingcdn.top/stream/32/index.m3u8",
+    type: "hls",
+  },
   {
     id: "wcl-world-cup-tv",
     name: "WORLD CUP TV (ENG)",
@@ -75,16 +92,8 @@ const WORLDCUP_LIVE_CHANNELS: Channel[] = [
     key: "829799ed534d11fcadeb4b192467e050",
   },
   {
-    id: "wcl-caze-tv",
-    name: "CAZE TV",
-    logo: "https://images.seeklogo.com/logo-png/61/1/cazetv-logo-png_seeklogo-619708.png",
-    group: "FIFA World Cup",
-    url: "https://dfr80qz435crc.cloudfront.net/MNOP/Amagi/Caze/Caze_TV_BR/Caze_TV.m3u8",
-    type: "hls",
-  },
-  {
     id: "wcl-ptv-sports-embed",
-    name: "Ptv Sports",
+    name: "PTV Sports",
     logo: "https://wapka-img.zuna.id/785a58ff.png",
     group: "FIFA World Cup",
     url: "https://cdn.dadocric.st/embed2.php?id=ptvsp",
@@ -92,7 +101,7 @@ const WORLDCUP_LIVE_CHANNELS: Channel[] = [
   },
   {
     id: "wcl-p-tv-sports",
-    name: "P Tv Sports",
+    name: "PTV Sports",
     logo: "https://i.postimg.cc/sXpJqtm3/Ptv.png",
     group: "FIFA World Cup",
     url: "https://tvsen5.aynaott.com/PtvSports/tracks-v1a1/mono.ts.m3u8",
@@ -194,7 +203,7 @@ const WORLDCUP_LIVE_CHANNELS: Channel[] = [
   },
   {
     id: "wcl-bein-sports-1-max",
-    name: "beIN Sports 1 MAX (Arabic)",
+    name: "BEIN Sports 1 MAX (Arabic)",
     logo: "https://i.imgur.com/FjWQjdy.png",
     group: "FIFA World Cup",
     url: "https://cdn.yallashooot.pp.ua/hls/ch1.m3u8",
@@ -207,7 +216,9 @@ export default function IPTVPlayer({ activePlaylistId, onPlaylistChange }: IPTVP
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const [selectedChannel, setSelectedChannel] = useState<Channel | null>(WORLDCUP_LIVE_CHANNELS[0]);
+  const [selectedChannel, setSelectedChannel] = useState<Channel | null>(
+    WORLDCUP_LIVE_CHANNELS.find(c => c.id === "wcl-world-cup-tv") || WORLDCUP_LIVE_CHANNELS[0]
+  );
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("All");
   const [displayCount, setDisplayCount] = useState(80);
@@ -254,9 +265,20 @@ export default function IPTVPlayer({ activePlaylistId, onPlaylistChange }: IPTVP
   const isMutedRef = useRef(isMuted);
   const volumeRef = useRef(volume);
   const loadedUrlRef = useRef<string | null>(null);
+  const proxyModeRef = useRef<Set<string>>(new Set());
   const [playerHeight, setPlayerHeight] = useState(0);
   const [isLargeScreen, setIsLargeScreen] = useState(false);
   const [viewerCount, setViewerCount] = useState<number | null>(null);
+
+  const resolveStreamUrl = useCallback((url: string) => {
+    if (url && (url.startsWith("http://") || url.startsWith("https://"))) {
+      if (proxyModeRef.current.has(url)) {
+        return `/api/iptv/proxy?url=${encodeURIComponent(url)}`;
+      }
+      return url;
+    }
+    return url;
+  }, []);
 
   const [qualityLevel, setQualityLevel] = useState("auto");
   const [showQualityMenu, setShowQualityMenu] = useState(false);
@@ -1190,6 +1212,8 @@ export default function IPTVPlayer({ activePlaylistId, onPlaylistChange }: IPTVP
             shakaRef.current = player;
             await player.attach(video);
 
+            const useProxy = proxyModeRef.current.has(chan.url);
+
             player.configure({
               manifest: {
                 defaultPresentationDelay: 8,
@@ -1203,7 +1227,7 @@ export default function IPTVPlayer({ activePlaylistId, onPlaylistChange }: IPTVP
                 stallEnabled: true,
                 stallThreshold: 1,
                 stallSkip: 0.15,
-                retryParameters: { maxAttempts: 12, baseDelay: 500, backoffFactor: 1.6, fuzzFactor: 0.35, timeout: 15000 },
+                retryParameters: { maxAttempts: useProxy ? 12 : 2, baseDelay: 200, backoffFactor: 1.5, fuzzFactor: 0.25, timeout: 10000 },
               },
               abr: {
                 enabled: true,
@@ -1225,23 +1249,32 @@ export default function IPTVPlayer({ activePlaylistId, onPlaylistChange }: IPTVP
               });
             }
 
-            const netEngine = player.getNetworkingEngine();
-            if (netEngine) {
-              netEngine.registerRequestFilter((type: any, request: { uris: string[] }) => {
-                const url = request.uris[0];
-                if (url && (url.startsWith("http://") || url.startsWith("https://"))) {
-                  request.uris[0] = `/api/iptv/proxy?url=${encodeURIComponent(url)}`;
-                }
-              });
+            if (useProxy) {
+              const netEngine = player.getNetworkingEngine();
+              if (netEngine) {
+                netEngine.registerRequestFilter((type: any, request: { uris: string[] }) => {
+                  const url = request.uris[0];
+                  if (url && (url.startsWith("http://") || url.startsWith("https://"))) {
+                    request.uris[0] = `/api/iptv/proxy?url=${encodeURIComponent(url)}`;
+                  }
+                });
+              }
             }
 
             player.addEventListener("error", (event: any) => {
+              if (!useProxy && !proxyModeRef.current.has(chan.url)) {
+                proxyModeRef.current.add(chan.url);
+                loadedUrlRef.current = null;
+                setRetryKey((k) => k + 1);
+                return;
+              }
+              if (loadedUrlRef.current === null) return;
               const detail = event?.detail;
-              console.error("[SHAKA] DASH error:", JSON.stringify(detail));
+              console.warn("[SHAKA] DASH playback error:", JSON.stringify(detail));
               setPlayerStatus("error");
             });
 
-            const dashUrl = getPlayableUrl(chan.url);
+            const dashUrl = resolveStreamUrl(chan.url);
             await player.load(dashUrl);
 
             if (loadedUrlRef.current !== chan.url) {
@@ -1292,13 +1325,13 @@ export default function IPTVPlayer({ activePlaylistId, onPlaylistChange }: IPTVP
             });
           } catch (err) {
             if (loadedUrlRef.current !== chan.url) return;
-            console.error("[SHAKA] Load error:", {
-              message: err instanceof Error ? err.message : err,
-              code: (err as any).code,
-              category: (err as any).category,
-              severity: (err as any).severity,
-              data: (err as any).data,
-            });
+            if (!proxyModeRef.current.has(chan.url)) {
+              proxyModeRef.current.add(chan.url);
+              loadedUrlRef.current = null;
+              setRetryKey((k) => k + 1);
+              return;
+            }
+            console.error("[SHAKA] Load error:", err);
             setPlayerStatus("error");
           }
         })();
@@ -1311,7 +1344,7 @@ export default function IPTVPlayer({ activePlaylistId, onPlaylistChange }: IPTVP
         });
         hlsRef.current = hls;
         hls.attachMedia(video);
-        const playableUrl = getPlayableUrl(chan.url);
+        const playableUrl = resolveStreamUrl(chan.url);
         hls.loadSource(playableUrl);
 
         let hlsRetryCount = 0;
@@ -1360,8 +1393,14 @@ export default function IPTVPlayer({ activePlaylistId, onPlaylistChange }: IPTVP
           });
         });
 
-        hls.on(Hls.Events.ERROR, (_event: string, data: { fatal: boolean; type: string }) => {
+        hls.on(Hls.Events.ERROR, (_event: string, data: { fatal: boolean; type: string; details: string }) => {
           if (data.fatal) {
+            if (data.type === Hls.ErrorTypes.NETWORK_ERROR && !proxyModeRef.current.has(chan.url)) {
+              proxyModeRef.current.add(chan.url);
+              loadedUrlRef.current = null;
+              setRetryKey((k) => k + 1);
+              return;
+            }
             switch (data.type) {
               case Hls.ErrorTypes.NETWORK_ERROR:
                 if (hlsRetryCount < MAX_HLS_RETRIES) {
@@ -1386,7 +1425,7 @@ export default function IPTVPlayer({ activePlaylistId, onPlaylistChange }: IPTVP
           }
         });
       } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
-        const playableUrl = getPlayableUrl(chan.url);
+        const playableUrl = resolveStreamUrl(chan.url);
         video.src = playableUrl;
 
         const onLoadedMetadata = () => {

@@ -39,7 +39,7 @@ export async function GET(request: NextRequest) {
 
     const response = await fetch(targetUrl, {
       headers: upstreamHeaders,
-      signal: AbortSignal.timeout(9000),
+      signal: AbortSignal.timeout(30000),
       redirect: "follow",
     });
 
@@ -57,6 +57,51 @@ export async function GET(request: NextRequest) {
       contentType.toLowerCase().includes("mpeg-url") ||
       targetUrl.toLowerCase().split(/[?#]/)[0].endsWith(".m3u8") ||
       targetUrl.toLowerCase().split(/[?#]/)[0].endsWith(".m3u");
+
+    const isMPD =
+      contentType.toLowerCase().includes("dash+xml") ||
+      contentType.toLowerCase().includes("xml") ||
+      targetUrl.toLowerCase().split(/[?#]/)[0].endsWith(".mpd");
+
+    if (isMPD) {
+      const text = await response.text();
+      const cleanText = text.charCodeAt(0) === 0xFEFF ? text.slice(1) : text;
+
+      // Get the base directory of the original target URL
+      const targetBase = targetUrl.substring(0, targetUrl.lastIndexOf('/') + 1);
+
+      // Rewrite relative <BaseURL> to absolute (resolve against original CDN base)
+      let modifiedText = cleanText.replace(
+        /<BaseURL[^>]*>([^<]*)<\/BaseURL>/gi,
+        (_match, baseUrlContent: string) => {
+          const trimmed = baseUrlContent.trim();
+          if (trimmed && !trimmed.startsWith("http://") && !trimmed.startsWith("https://")) {
+            return `<BaseURL>${resolveUrl(trimmed, targetBase)}</BaseURL>`;
+          }
+          return _match;
+        }
+      );
+
+      // If no BaseURL existed, inject one pointing to the original CDN base
+      if (!cleanText.match(/<BaseURL[^>]*>/i)) {
+        const insertPos = modifiedText.indexOf(">") + 1;
+        modifiedText =
+          modifiedText.slice(0, insertPos) +
+          `<BaseURL>${targetBase}</BaseURL>` +
+          modifiedText.slice(insertPos);
+      }
+
+      return new Response(modifiedText, {
+        status: 200,
+        headers: {
+          "Content-Type": "application/dash+xml",
+          "Access-Control-Allow-Origin": "*",
+          "Access-Control-Allow-Headers": "Range",
+          "Access-Control-Expose-Headers": "Content-Range, Content-Length",
+          "Cache-Control": "no-cache, no-store, must-revalidate",
+        },
+      });
+    }
 
     if (isM3U8) {
       const text = await response.text();
@@ -148,7 +193,14 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     if (error instanceof DOMException && error.name === "AbortError") {
       return Response.json(
-        { error: "Upstream server timed out (9s)" },
+        { error: "Upstream server timed out (30s)" },
+        { status: 504 }
+      );
+    }
+
+    if (error instanceof TypeError && error.message.includes("timeout")) {
+      return Response.json(
+        { error: "Upstream server timed out (30s)" },
         { status: 504 }
       );
     }
