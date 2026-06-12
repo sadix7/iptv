@@ -8,6 +8,9 @@ interface Channel {
   logo: string;
   group: string;
   url: string;
+  type?: string;
+  kid?: string;
+  key?: string;
 }
 
 interface PlaylistCache {
@@ -51,12 +54,15 @@ export function getChannelsWithHash(rawType: string = "universal") {
         const raw = JSON.parse(fileContent);
 
         const channels = raw.map(
-          (ch: { name: string; logo: string; group: string; url: string }, idx: number) => ({
+          (ch: any, idx: number) => ({
             id: `ch-${type}-${idx}`,
             name: ch.name,
             logo: ch.logo || "",
             group: ch.group || "Uncategorized",
             url: ch.url,
+            type: ch.type,
+            kid: ch.kid,
+            key: ch.key,
           })
         );
 

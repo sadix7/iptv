@@ -1312,7 +1312,11 @@ export default function IPTVPlayer({ activePlaylistId, onPlaylistChange }: IPTVP
         const playableUrl = getPlayableUrl(chan.url);
         hls.loadSource(playableUrl);
 
+        let hlsRetryCount = 0;
+        const MAX_HLS_RETRIES = 3;
+
         hls.on(Hls.Events.MANIFEST_PARSED, () => {
+          hlsRetryCount = 0;
           if (hls.levels && hls.levels.length > 0) {
             const qs = hls.levels.map((level, idx) => ({
               index: idx,
@@ -1358,10 +1362,20 @@ export default function IPTVPlayer({ activePlaylistId, onPlaylistChange }: IPTVP
           if (data.fatal) {
             switch (data.type) {
               case Hls.ErrorTypes.NETWORK_ERROR:
-                hls.startLoad();
+                if (hlsRetryCount < MAX_HLS_RETRIES) {
+                  hlsRetryCount++;
+                  hls.startLoad();
+                } else {
+                  setPlayerStatus("error");
+                }
                 break;
               case Hls.ErrorTypes.MEDIA_ERROR:
-                hls.recoverMediaError();
+                if (hlsRetryCount < MAX_HLS_RETRIES) {
+                  hlsRetryCount++;
+                  hls.recoverMediaError();
+                } else {
+                  setPlayerStatus("error");
+                }
                 break;
               default:
                 setPlayerStatus("error");

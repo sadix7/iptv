@@ -33,17 +33,15 @@ export async function GET(request: NextRequest) {
       const parsedTarget = new URL(targetUrl);
       upstreamHeaders["Referer"] = parsedTarget.origin + "/";
       upstreamHeaders["Origin"] = parsedTarget.origin;
-    } catch {}
-
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 9000);
+    } catch {
+      console.warn("Proxy: unable to parse target URL for Referer/Origin headers:", targetUrl);
+    }
 
     const response = await fetch(targetUrl, {
       headers: upstreamHeaders,
-      signal: controller.signal,
+      signal: AbortSignal.timeout(9000),
       redirect: "follow",
     });
-    clearTimeout(timeout);
 
     if (!response.ok && response.status !== 206) {
       return Response.json(
@@ -62,7 +60,8 @@ export async function GET(request: NextRequest) {
 
     if (isM3U8) {
       const text = await response.text();
-      const lines = text.split(/\r?\n/);
+      const cleanText = text.charCodeAt(0) === 0xFEFF ? text.slice(1) : text;
+      const lines = cleanText.split(/\r?\n/);
       const forwardedHost = request.headers.get("x-forwarded-host");
       const forwardedProto = request.headers.get("x-forwarded-proto");
       const host = request.headers.get("host");
@@ -99,10 +98,10 @@ export async function GET(request: NextRequest) {
         }
       });
 
-      return new Response(rewrittenLines.join("\n"), {
+      return new Response(rewrittenLines.join("\n") + "\n", {
         status: 200,
         headers: {
-          "Content-Type": contentType || "application/vnd.apple.mpegurl",
+          "Content-Type": "application/vnd.apple.mpegurl",
           "Access-Control-Allow-Origin": "*",
           "Access-Control-Allow-Headers": "Range",
           "Access-Control-Expose-Headers": "Content-Range, Content-Length",
