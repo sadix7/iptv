@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 
-import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import React, { useState, useEffect, useLayoutEffect, useRef, useCallback, useMemo } from "react";
 import Hls from "hls.js";
 import { motion, AnimatePresence } from "motion/react";
 import {
@@ -28,9 +28,9 @@ import {
   ChevronsLeft,
   ChevronsRight,
   List,
-  X
+  X,
+  Settings
 } from "lucide-react";
-import worldCupData from "../data/worldcup.json";
 
 interface Channel {
   id: string;
@@ -38,6 +38,9 @@ interface Channel {
   logo: string;
   group: string;
   url: string;
+  type?: "dash" | "hls";
+  kid?: string;
+  key?: string;
 }
 
 interface Playlist {
@@ -62,67 +65,140 @@ interface IPTVPlayerProps {
 
 const WORLDCUP_LIVE_CHANNELS: Channel[] = [
   {
+    id: "wcl-world-cup-tv",
+    name: "WORLD CUP TV (ENG)",
+    logo: "https://upload.wikimedia.org/wikipedia/commons/4/4b/FIFA_WorldCup_logo.svg",
+    group: "FIFA World Cup",
+    url: "https://qp-pldt-live-bpk-ucd-prod.akamaized.net/bpk-tv/ch299/default/index.mpd",
+    type: "dash",
+    kid: "549ab7cd35a64bb6bb479ecead04d69d",
+    key: "829799ed534d11fcadeb4b192467e050",
+  },
+  {
     id: "wcl-caze-tv",
     name: "CAZE TV",
     logo: "https://images.seeklogo.com/logo-png/61/1/cazetv-logo-png_seeklogo-619708.png",
-    group: "Sports",
+    group: "FIFA World Cup",
     url: "https://dfr80qz435crc.cloudfront.net/MNOP/Amagi/Caze/Caze_TV_BR/Caze_TV.m3u8",
+    type: "hls",
+  },
+  {
+    id: "wcl-ptv-sports-embed",
+    name: "Ptv Sports",
+    logo: "https://wapka-img.zuna.id/785a58ff.png",
+    group: "FIFA World Cup",
+    url: "https://cdn.dadocric.st/embed2.php?id=ptvsp",
+    type: "hls",
+  },
+  {
+    id: "wcl-p-tv-sports",
+    name: "P Tv Sports",
+    logo: "https://i.postimg.cc/sXpJqtm3/Ptv.png",
+    group: "FIFA World Cup",
+    url: "https://tvsen5.aynaott.com/PtvSports/tracks-v1a1/mono.ts.m3u8",
+    type: "hls",
+  },
+  {
+    id: "wcl-ptv-sports",
+    name: "PTV Sports",
+    logo: "https://s3.aynaott.com/storage/9d9d7cbfba5a8ceea648bbd963ad1014",
+    group: "FIFA World Cup",
+    url: "https://tvsen5.aynaott.com/PtvSports/index.m3u8?e=1779283784&u=78be6644-0a65-48ec-81a4-089ac65a2619&token=db1789e36c278bf538489fac263e0ffb",
+    type: "hls",
   },
   {
     id: "wcl-somoy-tv",
     name: "Somoy TV",
     logo: "https://i.postimg.cc/Qxn4JFNV/20250529-071147.png",
-    group: "Sports",
+    group: "FIFA World Cup",
     url: "https://sm-monirul.top/toffee/play/somoy_tv.m3u8",
-  },
-  {
-    id: "wcl-btv-hd-1",
-    name: "BTV HD 1",
-    logo: "https://static.wikia.nocookie.net/logopedia/images/1/12/BTV_HD_Logo.svg",
-    group: "Sports",
-    url: "https://tvsen6.aynaott.com/btvhd/index.m3u8?e=1780827046&u=3eb1295b-5452-470f-8568-18bbbf5b8b94&token=72ca034ee29969196e6da1592c3b5217",
-  },
-  {
-    id: "wcl-btv-hd-2",
-    name: "BTV HD 2",
-    logo: "https://static.wikia.nocookie.net/logopedia/images/1/12/BTV_HD_Logo.svg",
-    group: "Sports",
-    url: "https://owrcovcrpy.gpcdn.net/bpk-tv/1709/output/index.m3u8",
-  },
-  {
-    id: "wcl-btv-hd-3",
-    name: "BTV HD 3",
-    logo: "https://static.wikia.nocookie.net/logopedia/images/1/12/BTV_HD_Logo.svg",
-    group: "Sports",
-    url: "https://tvsen6.aynaott.com/btv_world/index.m3u8?e=1780827046&u=3eb1295b-5452-470f-8568-18bbbf5b8b94&token=51a77fcaea225e9d88e97e81ea9541a8",
+    type: "hls",
   },
   {
     id: "wcl-btv-ctg",
     name: "BTV CTG",
     logo: "https://s3.aynaott.com/storage/00da8a07fb26b2fb79359ee535e4c7bc",
-    group: "Sports",
+    group: "FIFA World Cup",
     url: "https://tvsen6.aynaott.com/btvctg/index.m3u8?e=1779283747&u=78be6644-0a65-48ec-81a4-089ac65a2619&token=9bca925fbdfe526b29d41ab7802348ec",
+    type: "hls",
   },
   {
-    id: "wcl-fox-sports-1080p",
-    name: "FOX Sports (1080p)",
+    id: "wcl-d-sports",
+    name: "D Sports",
+    logo: "https://upload.wikimedia.org/wikipedia/commons/5/5a/DSports.png",
+    group: "FIFA World Cup",
+    url: "https://otte.live.fly.ww.aiv-cdn.net/gru-nitro/live/clients/dash/enc/ubehitlwzo/out/v1/8e09c381a51f4366a19e979418112e8f/cenc.mpd",
+    type: "dash",
+    kid: "a7d11d37a1f7611ee88d4db880171f32",
+    key: "68f96d618b0b956b008c445896a25a79",
+  },
+  {
+    id: "wcl-tudn",
+    name: "TUDN",
+    logo: "https://i.imgur.com/oT5CAvd.png",
+    group: "FIFA World Cup",
+    url: "https://otte.live.fly.ww.aiv-cdn.net/gru-nitro/live/clients/dash/enc/8u9cregwlt/out/v1/687f6b2a559943549be271504a948ffd/cenc.mpd",
+    type: "dash",
+    kid: "1710ac2bbfcd3032d0f6533850968f47",
+    key: "d2548dacc8efcd1cd0af0373060c82dc",
+  },
+  {
+    id: "wcl-sportv",
+    name: "SporTV",
+    logo: "https://i.postimg.cc/gr9x3z71/Spor-TV-2021.png",
+    group: "FIFA World Cup",
+    url: "https://a151aivottlinear-a.akamaihd.net/OTTB/sin-nitro/live/dash/enc/m7duvnk2bu/out/v1/d1ad69118b5647309b1eb7213affdb3d/cenc.mpd",
+    type: "dash",
+    kid: "4bbcff3289d457b4dd5dbdd21221de9a",
+    key: "c4906b9a9f8dda3c0725bddb8c497733",
+  },
+  {
+    id: "wcl-tsn-sports-1",
+    name: "TSN Sports 1",
+    logo: "https://i.imgur.com/eRFE0jZ.png",
+    group: "FIFA World Cup",
+    url: "https://otte.cache.aiv-cdn.net/bom-nitro/live/clients/dash/enc/7janu55dwc/out/v1/69a2a7041395406b970598f61680e7cf/cenc.mpd",
+    type: "dash",
+    kid: "e51aa21f2a0fef9aabc120dfb655b52f",
+    key: "a12a987fe725a40b6be95cd84b15f689",
+  },
+  {
+    id: "wcl-telemundo",
+    name: "Telemundo",
+    logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/6/68/Telemundo_logo_2018.svg/960px-Telemundo_logo_2018.svg.png",
+    group: "FIFA World Cup",
+    url: "https://live-oneapp-prd-news.akamaized.net/Content/CMAF_OL2-CTR-4s-v2/Live/channel(kvea)/master.mpd",
+    type: "dash",
+    kid: "ce7ab3022e753307997f58afe001bac4",
+    key: "72d631a66e635c60829a0fe7705516c1",
+  },
+  {
+    id: "wcl-m6-direct-tv",
+    name: "M6 Direct TV",
+    logo: "https://i.imgur.com/7GVp3fW.png",
+    group: "FIFA World Cup",
+    url: "https://origin-m6web.live.6cloud.fr/out/v1/6play/6play-m6/cmaf_cenc00/dash-short-hd.mpd",
+    type: "dash",
+    kid: "433ffba670963e70857859a9dff4be04",
+    key: "51ede3a821229fe81e71282c8eff80e3",
+  },
+  {
+    id: "wcl-zee5-bangla",
+    name: "Zee5 Bangla",
     logo: "",
-    group: "Sports",
-    url: "https://d1jzu95oc8fgt3.cloudfront.net/FOX_Sports.m3u8",
+    group: "FIFA World Cup",
+    url: "https://d1g8wgjurz8via.cloudfront.net/bpk-tv/Zeebanglacinema/default/manifest.mpd",
+    type: "dash",
+    kid: "fbbfd9ce4bbe4d818b16df7dfe89f05b",
+    key: "1e96d0f88ef740e982d6f6105721c8bc",
   },
   {
-    id: "wcl-telemundo-mx",
-    name: "TELEMUNDO 🇲🇽",
-    logo: "",
-    group: "Sports",
-    url: "https://nbculocallive.akamaized.net/hls/live/2037499/puertorico/stream1/master.m3u8",
-  },
-  {
-    id: "wcl-tsn-1",
-    name: "TSN 1",
-    logo: "https://s3.aynaott.com/storage/59fe7ff434fed04ecec29b4d737ebc95",
-    group: "Sports",
-    url: "https://tvsen7.aynaott.com/tsn1/index.m3u8?e=1779283805&u=78be6644-0a65-48ec-81a4-089ac65a2619&token=e5ce886378c54bd381b9833b5d57649a",
+    id: "wcl-bein-sports-1-max",
+    name: "beIN Sports 1 MAX (Arabic)",
+    logo: "https://i.imgur.com/FjWQjdy.png",
+    group: "FIFA World Cup",
+    url: "https://cdn.yallashooot.pp.ua/hls/ch1.m3u8",
+    type: "hls",
   },
 ];
 
@@ -131,7 +207,7 @@ export default function IPTVPlayer({ activePlaylistId, onPlaylistChange }: IPTVP
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const [selectedChannel, setSelectedChannel] = useState<Channel | null>(null);
+  const [selectedChannel, setSelectedChannel] = useState<Channel | null>(WORLDCUP_LIVE_CHANNELS[0]);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("All");
   const [displayCount, setDisplayCount] = useState(80);
@@ -140,8 +216,7 @@ export default function IPTVPlayer({ activePlaylistId, onPlaylistChange }: IPTVP
   const [playlists, setPlaylists] = useState<Playlist[]>([
     { id: "worldcup-live", name: "World Cup Live", type: "default", channels: WORLDCUP_LIVE_CHANNELS },
     { id: "sports", name: "Sports", type: "default", channels: [] },
-    { id: "entertainment", name: "Entertainment", type: "default", channels: [] },
-    { id: "universal", name: "Universal", type: "default", channels: [] },
+    { id: "universal", name: "Global", type: "default", channels: [] },
     { id: "bangla", name: "Bangla", type: "default", channels: [] },
   ]);
 
@@ -174,11 +249,21 @@ export default function IPTVPlayer({ activePlaylistId, onPlaylistChange }: IPTVP
   const unmuteCleanupRef = useRef<(() => void) | null>(null);
 
   const hlsRef = useRef<Hls | null>(null);
+  const shakaRef = useRef<any>(null);
   const userMutedRef = useRef(false);
   const isMutedRef = useRef(isMuted);
   const volumeRef = useRef(volume);
   const loadedUrlRef = useRef<string | null>(null);
+  const [playerHeight, setPlayerHeight] = useState(0);
+  const [isLargeScreen, setIsLargeScreen] = useState(false);
   const [viewerCount, setViewerCount] = useState<number | null>(null);
+
+  const [qualityLevel, setQualityLevel] = useState("auto");
+  const [showQualityMenu, setShowQualityMenu] = useState(false);
+  const [availableQualities, setAvailableQualities] = useState<
+    { index: number; height: number; label: string }[]
+  >([]);
+  const qualityMenuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     // Generate or retrieve session ID from sessionStorage
@@ -313,6 +398,25 @@ export default function IPTVPlayer({ activePlaylistId, onPlaylistChange }: IPTVP
 
 
 
+  useLayoutEffect(() => {
+    const el = playerContainerRef.current;
+    if (!el) return;
+    setPlayerHeight(el.offsetHeight);
+    const observer = new ResizeObserver(([entry]) => {
+      setPlayerHeight(entry.contentRect.height);
+    });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  useEffect(() => {
+    const mq = window.matchMedia("(min-width: 1024px)");
+    const handler = (e: MediaQueryListEvent | MediaQueryList) => setIsLargeScreen(e.matches);
+    handler(mq);
+    mq.addEventListener("change", handler);
+    return () => mq.removeEventListener("change", handler);
+  }, []);
+
   useEffect(() => {
     const handleFullscreenChange = () => {
       const isFs = !!document.fullscreenElement;
@@ -404,6 +508,7 @@ export default function IPTVPlayer({ activePlaylistId, onPlaylistChange }: IPTVP
     if (!video) return;
     if (video.muted) {
       video.muted = false;
+      setIsMuted(false);
       userMutedRef.current = false;
       if (video.volume === 0) {
         video.volume = 1.0;
@@ -411,6 +516,7 @@ export default function IPTVPlayer({ activePlaylistId, onPlaylistChange }: IPTVP
       }
     } else {
       video.muted = true;
+      setIsMuted(true);
       userMutedRef.current = true;
     }
     resetControlsTimeout();
@@ -426,9 +532,11 @@ export default function IPTVPlayer({ activePlaylistId, onPlaylistChange }: IPTVP
     setVolume(newVol);
     if (newVol > 0) {
       video.muted = false;
+      setIsMuted(false);
       userMutedRef.current = false;
     } else {
       video.muted = true;
+      setIsMuted(true);
       userMutedRef.current = true;
     }
     resetControlsTimeout();
@@ -613,16 +721,18 @@ export default function IPTVPlayer({ activePlaylistId, onPlaylistChange }: IPTVP
     resetControlsTimeout();
   };
 
+  // Track whether localStorage hydration has completed for initial mount
+  const hydrated = useRef(false);
+
   // Hydrate playlists from localStorage on client-side mount
   useEffect(() => {
     try {
       const saved = localStorage.getItem("iptv_saved_playlists");
-      const savedActiveId = localStorage.getItem("iptv_active_playlist_id");
 
       if (saved) {
         const parsedSaved = JSON.parse(saved) as Playlist[];
         const customPlaylists = parsedSaved.filter(p => 
-          p.id !== "default" && p.id !== "home" && p.id !== "sports" && p.id !== "entertainment" && p.id !== "universal" && p.id !== "bangla" && p.id !== "worldcup-live"
+          p.id !== "default" && p.id !== "home" && p.id !== "sports" && p.id !== "universal" && p.id !== "bangla" && p.id !== "worldcup-live"
         );
 
         setTimeout(() => {
@@ -636,21 +746,20 @@ export default function IPTVPlayer({ activePlaylistId, onPlaylistChange }: IPTVP
         }, 0);
       }
 
-      if (savedActiveId) {
-        setTimeout(() => {
-          const resolvedActiveId = savedActiveId === "default" ? "sports" : savedActiveId;
-          onPlaylistChange(resolvedActiveId);
-        }, 0);
-      }
+      // Mark hydration as complete after all scheduled restores
+      setTimeout(() => {
+        hydrated.current = true;
+      }, 0);
     } catch (e) {
       console.error("Failed to load playlists from localStorage:", e);
+      hydrated.current = true;
     }
   }, []);
 
   // Save custom playlists to localStorage whenever they change
   useEffect(() => {
     const customPlaylists = playlists.filter(p => 
-      p.id !== "default" && p.id !== "home" && p.id !== "sports" && p.id !== "entertainment" && p.id !== "universal" && p.id !== "bangla" && p.id !== "worldcup-live"
+      p.id !== "default" && p.id !== "home" && p.id !== "sports" && p.id !== "universal" && p.id !== "bangla" && p.id !== "worldcup-live"
     );
     try {
       localStorage.setItem("iptv_saved_playlists", JSON.stringify(customPlaylists));
@@ -659,9 +768,9 @@ export default function IPTVPlayer({ activePlaylistId, onPlaylistChange }: IPTVP
     }
   }, [playlists]);
 
-  // Sync activePlaylistId to localStorage
+  // Sync activePlaylistId to localStorage (only after initial hydration)
   useEffect(() => {
-    if (activePlaylistId) {
+    if (hydrated.current && activePlaylistId) {
       localStorage.setItem("iptv_active_playlist_id", activePlaylistId);
     }
   }, [activePlaylistId]);
@@ -1011,7 +1120,7 @@ export default function IPTVPlayer({ activePlaylistId, onPlaylistChange }: IPTVP
 
   const handleDeletePlaylist = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    if (id === "default" || id === "home" || id === "sports" || id === "entertainment" || id === "universal" || id === "bangla" || id === "worldcup-live") return;
+    if (id === "default" || id === "home" || id === "sports" || id === "universal" || id === "bangla" || id === "worldcup-live") return;
 
     setPlaylists(prev => {
       const updated = prev.filter(p => p.id !== id);
@@ -1022,7 +1131,7 @@ export default function IPTVPlayer({ activePlaylistId, onPlaylistChange }: IPTVP
     });
   };
 
-  // 2. Initialize Hls.js/Native player and load stream
+  // 2. Initialize player and load stream (HLS or DASH+DRM)
   const initializeStream = useCallback(
     (chan: Channel, isUserClick: boolean) => {
       const video = videoRef.current;
@@ -1048,12 +1157,140 @@ export default function IPTVPlayer({ activePlaylistId, onPlaylistChange }: IPTVP
         video.muted = isMutedRef.current;
       }
 
+      video.pause();
+      video.removeAttribute("src");
+      video.load();
+
       if (hlsRef.current) {
         hlsRef.current.destroy();
         hlsRef.current = null;
       }
+      if (shakaRef.current) {
+        shakaRef.current.destroy();
+        shakaRef.current = null;
+      }
 
-      if (Hls.isSupported()) {
+      const isDash = chan.type === "dash" || chan.url.endsWith(".mpd");
+
+      if (isDash) {
+        (async () => {
+          try {
+            const shakaModule = await import("shaka-player");
+            const shaka = shakaModule.default || shakaModule;
+            if (loadedUrlRef.current !== chan.url) return;
+
+            shaka.polyfill.installAll();
+
+            if (!shaka.Player.isBrowserSupported()) {
+              setPlayerStatus("error");
+              return;
+            }
+
+            const player = new shaka.Player();
+            shakaRef.current = player;
+            await player.attach(video);
+
+            player.configure({
+              manifest: {
+                defaultPresentationDelay: 8,
+                ignoreDrmInfo: true,
+                dash: { ignoreMinBufferTime: true, ignoreSuggestedPresentationDelay: true, autoCorrectDrift: true },
+              },
+              streaming: {
+                bufferingGoal: 10,
+                rebufferingGoal: 0.8,
+                bufferBehind: 12,
+                stallEnabled: true,
+                stallThreshold: 1,
+                stallSkip: 0.15,
+                retryParameters: { maxAttempts: 12, baseDelay: 500, backoffFactor: 1.6, fuzzFactor: 0.35, timeout: 15000 },
+              },
+              abr: {
+                enabled: true,
+                defaultBandwidthEstimate: 4500000,
+                switchInterval: 1,
+                clearBufferSwitch: false,
+                restrictToElementSize: true,
+                restrictToScreenSize: true,
+                bandwidthDowngradeTarget: 0.92,
+                bandwidthUpgradeTarget: 0.72,
+              },
+            });
+
+            if (chan.kid && chan.key) {
+              player.configure({
+                drm: {
+                  clearKeys: { [chan.kid.toLowerCase()]: chan.key.toLowerCase() },
+                },
+              });
+            }
+
+            player.addEventListener("error", (event: any) => {
+              const detail = event?.detail;
+              console.error("[SHAKA] DASH error:", JSON.stringify(detail));
+              const code = detail?.code ?? "";
+              if (code === 6020) {
+                setPlayerStatus("error");
+              } else {
+                setPlayerStatus("error");
+              }
+            });
+
+            await player.load(chan.url);
+
+            if (loadedUrlRef.current !== chan.url) {
+              await player.destroy().catch(() => {});
+              return;
+            }
+
+            try {
+              const tracks = player.getVariantTracks().filter((t: any) => t.videoCodec);
+              const seen = new Set<number>();
+              const qs = tracks
+                .map((t: any, idx: number) => ({
+                  index: idx,
+                  height: t.height || 0,
+                  label: t.height ? `${t.height}p` : `Quality ${idx}`,
+                }))
+                .filter((q: any) => {
+                  if (seen.has(q.height)) return false;
+                  seen.add(q.height);
+                  return true;
+                })
+                .sort((a: any, b: any) => b.height - a.height);
+              if (qs.length > 0) setAvailableQualities(qs);
+            } catch {}
+
+            video.play().then(() => {
+              setPlayerStatus("playing");
+              setIsPaused(false);
+            }).catch((err) => {
+              if (err.name === "NotAllowedError") {
+                video.muted = true;
+                setIsMuted(true);
+                video.play().then(() => {
+                  setPlayerStatus("playing");
+                  setIsPaused(false);
+                  setupUnmuteOnInteraction();
+                }).catch(() => {
+                  setPlayerStatus("playing");
+                  setIsPaused(true);
+                });
+              } else {
+                if (err.name !== "AbortError") {
+                  console.warn("Shaka play failed:", err);
+                }
+                setPlayerStatus("playing");
+                setIsPaused(video.paused);
+              }
+            });
+          } catch (err) {
+            if (loadedUrlRef.current !== chan.url) return;
+            console.error("[SHAKA] Load error:", err);
+            setPlayerStatus("error");
+          }
+        })();
+      } else if (Hls.isSupported()) {
         const hls = new Hls({
           enableWorker: true,
           lowLatencyMode: true,
@@ -1066,63 +1303,57 @@ export default function IPTVPlayer({ activePlaylistId, onPlaylistChange }: IPTVP
         hls.loadSource(playableUrl);
 
         hls.on(Hls.Events.MANIFEST_PARSED, () => {
+          if (hls.levels && hls.levels.length > 0) {
+            const qs = hls.levels.map((level, idx) => ({
+              index: idx,
+              height: level.height || 0,
+              label: level.height ? `${level.height}p` : `Quality ${idx}`,
+            }));
+            setAvailableQualities(qs);
+          }
           if (!video.paused) {
             setPlayerStatus("playing");
             setIsPaused(false);
             return;
           }
-
-          video
-            .play()
-            .then(() => {
-              setPlayerStatus("playing");
-              setIsPaused(false);
-            })
-            .catch((err) => {
-              if (err.name === "NotAllowedError") {
-                video.muted = true;
-                setIsMuted(true);
-                video
-                  .play()
-                  .then(() => {
-                    setPlayerStatus("playing");
-                    setIsPaused(false);
-                    setupUnmuteOnInteraction();
-                  })
-                  .catch((playErr) => {
-                    if (playErr.name !== "AbortError") {
-                      console.error("Muted autoplay failed:", playErr);
-                    }
-                    setPlayerStatus("playing");
-                    setIsPaused(true);
-                  });
-              } else {
-                if (err.name !== "AbortError") {
-                  console.warn("Play failed:", err);
+          video.play().then(() => {
+            setPlayerStatus("playing");
+            setIsPaused(false);
+          }).catch((err) => {
+            if (err.name === "NotAllowedError") {
+              video.muted = true;
+              setIsMuted(true);
+              video.play().then(() => {
+                setPlayerStatus("playing");
+                setIsPaused(false);
+                setupUnmuteOnInteraction();
+              }).catch((playErr) => {
+                if (playErr.name !== "AbortError") {
+                  console.error("Muted autoplay failed:", playErr);
                 }
                 setPlayerStatus("playing");
-                setIsPaused(video.paused);
+                setIsPaused(true);
+              });
+            } else {
+              if (err.name !== "AbortError") {
+                console.warn("Play failed:", err);
               }
-            });
+              setPlayerStatus("playing");
+              setIsPaused(video.paused);
+            }
+          });
         });
 
         hls.on(Hls.Events.ERROR, (_event: string, data: { fatal: boolean; type: string }) => {
           if (data.fatal) {
             switch (data.type) {
               case Hls.ErrorTypes.NETWORK_ERROR:
-                console.warn(
-                  "Fatal HLS network error, attempting to recover..."
-                );
                 hls.startLoad();
                 break;
               case Hls.ErrorTypes.MEDIA_ERROR:
-                console.warn(
-                  "Fatal HLS media error, attempting to recover..."
-                );
                 hls.recoverMediaError();
                 break;
               default:
-                console.error("Fatal unrecoverable HLS error:", data);
                 setPlayerStatus("error");
                 break;
             }
@@ -1138,52 +1369,41 @@ export default function IPTVPlayer({ activePlaylistId, onPlaylistChange }: IPTVP
             setIsPaused(false);
             return;
           }
-
-          video
-            .play()
-            .then(() => {
-              setPlayerStatus("playing");
-              setIsPaused(false);
-            })
-            .catch((err) => {
-              if (err.name === "NotAllowedError") {
-                video.muted = true;
-                setIsMuted(true);
-                video
-                  .play()
-                  .then(() => {
-                    setPlayerStatus("playing");
-                    setIsPaused(false);
-                    setupUnmuteOnInteraction();
-                  })
-                  .catch((playErr) => {
-                    if (playErr.name !== "AbortError") {
-                      console.error("Native muted autoplay failed:", playErr);
-                    }
-                    setPlayerStatus("playing");
-                    setIsPaused(true);
-                  });
-              } else {
-                if (err.name !== "AbortError") {
-                  console.warn("Native play failed:", err);
+          video.play().then(() => {
+            setPlayerStatus("playing");
+            setIsPaused(false);
+          }).catch((err) => {
+            if (err.name === "NotAllowedError") {
+              video.muted = true;
+              setIsMuted(true);
+              video.play().then(() => {
+                setPlayerStatus("playing");
+                setIsPaused(false);
+                setupUnmuteOnInteraction();
+              }).catch((playErr) => {
+                if (playErr.name !== "AbortError") {
+                  console.error("Native muted autoplay failed:", playErr);
                 }
                 setPlayerStatus("playing");
-                setIsPaused(video.paused);
+                setIsPaused(true);
+              });
+            } else {
+              if (err.name !== "AbortError") {
+                console.warn("Native play failed:", err);
               }
-            });
+              setPlayerStatus("playing");
+              setIsPaused(video.paused);
+            }
+          });
         };
 
-        const onError = (e: Event) => {
-          console.error("Native video player error:", e);
+        const onError = () => {
           setPlayerStatus("error");
         };
 
-        video.addEventListener("loadedmetadata", onLoadedMetadata, {
-          once: true,
-        });
+        video.addEventListener("loadedmetadata", onLoadedMetadata, { once: true });
         video.addEventListener("error", onError, { once: true });
       } else {
-        setError("Your browser does not support HLS stream playback.");
         setPlayerStatus("error");
       }
 
@@ -1207,13 +1427,17 @@ export default function IPTVPlayer({ activePlaylistId, onPlaylistChange }: IPTVP
     }
   }, [selectedChannel, retryKey, initializeStream, loading]);
 
-  // Clean up Hls and video elements on component unmount
+  // Clean up Hls, Shaka and video elements on component unmount
   useEffect(() => {
     const video = videoRef.current;
     return () => {
       if (hlsRef.current) {
         hlsRef.current.destroy();
         hlsRef.current = null;
+      }
+      if (shakaRef.current) {
+        shakaRef.current.destroy();
+        shakaRef.current = null;
       }
       if (video) {
         video.src = "";
@@ -1225,9 +1449,52 @@ export default function IPTVPlayer({ activePlaylistId, onPlaylistChange }: IPTVP
     };
   }, []);
 
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (qualityMenuRef.current && !qualityMenuRef.current.contains(e.target as Node)) {
+        setShowQualityMenu(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
   const handleReload = () => {
     loadedUrlRef.current = null;
     setRetryKey((prev) => prev + 1);
+  };
+
+  const handleQualityChange = (level: string) => {
+    setQualityLevel(level);
+    setShowQualityMenu(false);
+    const hls = hlsRef.current;
+    if (hls) {
+      if (level === "auto") {
+        hls.currentLevel = -1;
+      } else {
+        const idx = availableQualities.findIndex(
+          (q) => q.label === level || String(q.height) === level
+        );
+        if (idx >= 0) hls.currentLevel = availableQualities[idx].index;
+      }
+      return;
+    }
+    const shaka = shakaRef.current;
+    if (shaka) {
+      if (level === "auto") {
+        shaka.configure({ abr: { enabled: true } });
+      } else {
+        shaka.configure({ abr: { enabled: false } });
+        const match = availableQualities.find(
+          (q) => q.label === level || String(q.height) === level
+        );
+        if (match) {
+          const tracks = shaka.getVariantTracks().filter((t: any) => t.videoCodec);
+          const target = tracks.find((t: any) => t.height === match.height);
+          if (target) shaka.selectVariantTrack(target, true);
+        }
+      }
+    }
   };
 
   const handleChannelSelect = useCallback(
@@ -1247,10 +1514,15 @@ export default function IPTVPlayer({ activePlaylistId, onPlaylistChange }: IPTVP
     [initializeStream]
   );
 
-  const categories = useMemo(() => [
-    "All",
-    ...Array.from(new Set(channels.map((c) => c.group))),
-  ], [channels]);
+  const categories = useMemo(() => {
+    const resolvedId = activePlaylistId === "home" ? "sports" : activePlaylistId;
+    const activePlaylist = playlists.find(p => p.id === resolvedId);
+    const cats = ["All", ...Array.from(new Set(channels.map((c) => c.group)))];
+    if (activePlaylist && (activePlaylist.id === "sports" || activePlaylist.id === "bangla")) {
+      return [];
+    }
+    return cats;
+  }, [channels, activePlaylistId, playlists]);
 
   const filteredChannels = useMemo(() => channels.filter((c) => {
     const matchesCategory =
@@ -1274,7 +1546,7 @@ export default function IPTVPlayer({ activePlaylistId, onPlaylistChange }: IPTVP
   };
 
   return (
-    <div className="max-w-7xl mx-auto space-y-4 md:space-y-6 pt-4 md:pt-6 min-h-screen pb-12 px-3 sm:px-4 md:px-6 text-white">
+    <div className="max-w-full mx-auto space-y-4 md:space-y-6 pt-4 md:pt-6 min-h-screen pb-12 px-3 sm:px-4 md:px-6 lg:px-10 xl:px-12 2xl:px-16 text-white">
       {error ? (
         <div className="glass-card p-12 text-center space-y-6 border border-rose-500/20 max-w-2xl mx-auto rounded-3xl bg-rose-500/5">
           <ShieldAlert className="text-rose-500 mx-auto" size={48} />
@@ -1288,7 +1560,7 @@ export default function IPTVPlayer({ activePlaylistId, onPlaylistChange }: IPTVP
           </button>
         </div>
       ) : loading ? (
-        <div className="flex flex-col gap-6 max-w-6xl mx-auto w-full items-center animate-pulse">
+          <div className="flex flex-col gap-6 w-full items-center animate-pulse">
           {/* 1. Player Card Skeleton */}
           <div className="w-full aspect-video rounded-2xl md:rounded-3xl bg-white/[0.01] border border-white/10 sm:border-white/5 flex items-center justify-center">
             <div className="w-16 h-16 rounded-full bg-white/10 flex items-center justify-center">
@@ -1361,14 +1633,14 @@ export default function IPTVPlayer({ activePlaylistId, onPlaylistChange }: IPTVP
           </div>
         </div>
       ) : (
-        <div className="flex flex-col gap-6 max-w-6xl mx-auto w-full items-center">
+          <div className="flex flex-col gap-6 w-full items-center">
           {/* 🏆 World Cup 2026 Hub */}
           <div id="world-cup-hub" className="w-full mb-6">
             <WorldCupHub />
           </div>
 
           {/* 1. Player + World Cup Live Sidebar */}
-          <div className="flex flex-col lg:flex-row gap-6 w-full">
+          <div className="flex flex-col lg:flex-row lg:items-start gap-6 w-full">
             {/* Player Card */}
             <div
               ref={playerWrapperRef}
@@ -1393,37 +1665,34 @@ export default function IPTVPlayer({ activePlaylistId, onPlaylistChange }: IPTVP
                   className="w-full h-full object-contain bg-black cursor-pointer"
                 />
 
-                {/* Tap to Unmute Overlay */}
-                {playerStatus === "playing" && isMuted && (
-                  <div
-                    className="absolute top-4 right-4 z-30 pointer-events-auto cursor-pointer"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleMuteUnmute();
-                    }}
-                  >
-                    <motion.div
-                      initial={{ scale: 0.9, opacity: 0 }}
-                      animate={{ scale: 1, opacity: 1 }}
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.95 }}
-                      className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-black/70 hover:bg-black/90 text-white border border-white/10 shadow-lg backdrop-blur-md"
+                {/* Top-left: Picture-in-Picture */}
+                {isPipSupported && (
+                  <div className="absolute top-4 left-4 z-30">
+                    <button
+                      onClick={handlePip}
+                      className={`p-2 rounded-lg hover:bg-white/10 text-white transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center bg-black/40 backdrop-blur-sm border border-white/10 ${
+                        isPip ? "text-primary bg-white/10" : ""
+                      }`}
+                      title="Picture in Picture"
+                      aria-label="Picture in Picture"
                     >
-                      <VolumeX
-                        size={14}
-                        className="text-primary animate-pulse"
-                      />
-                      <span className="text-[10px] sm:text-xs font-bold tracking-wider">
-                        TAP TO UNMUTE
-                      </span>
-                    </motion.div>
+                      <PictureInPicture size={16} className="sm:size-[18px]" />
+                    </button>
                   </div>
                 )}
+
+                {/* Top-right: LIVE indicator */}
+                <div className="absolute top-4 right-4 z-30 flex items-center gap-2">
+                  <div className="flex items-center gap-1 bg-rose-600/90 text-white font-bold text-[9px] sm:text-[10px] tracking-wider uppercase px-2.5 py-0.5 rounded border border-rose-500/30 animate-pulse select-none pointer-events-auto">
+                    <span className="h-1.5 w-1.5 rounded-full bg-white"></span>
+                    <span>LIVE</span>
+                  </div>
+                </div>
 
                 {/* Center Play Button Overlay when Paused */}
                 {playerStatus === "playing" && isPaused && (
                   <div
-                    className="absolute inset-0 flex items-center justify-center bg-black/35 z-10 cursor-pointer transition-colors hover:bg-black/50"
+                    className="absolute inset-0 hidden sm:flex items-center justify-center bg-black/35 z-10 cursor-pointer transition-colors hover:bg-black/50"
                     onClick={(e) => {
                       e.stopPropagation();
                       handlePlayPause();
@@ -1534,137 +1803,132 @@ export default function IPTVPlayer({ activePlaylistId, onPlaylistChange }: IPTVP
                 {/* Custom Controls Overlay */}
                 {playerStatus === "playing" && (
                   <div
-                    className={`player-controls absolute bottom-0 left-0 right-0 p-3 sm:p-4 bg-gradient-to-t from-black/90 via-black/40 to-transparent flex flex-col sm:flex-row items-center sm:justify-between gap-3 sm:gap-0 transition-all duration-300 z-20 ${showControls
+                    className={`player-controls absolute bottom-0 left-0 right-0 p-3 sm:p-4 bg-gradient-to-t from-black/90 via-black/40 to-transparent flex items-center justify-between gap-3 transition-all duration-300 z-20 ${showControls
                         ? "opacity-100 translate-y-0"
                         : "opacity-0 translate-y-2 pointer-events-none"
                       }`}
                   >
                     {/* Left controls - Play/Pause + Volume */}
-                    <div className="flex items-center gap-3 w-full sm:w-auto justify-start">
+                    <div className="flex items-center gap-1 sm:gap-3">
                       <button
                         onClick={handlePlayPause}
-                        className="p-3 sm:p-2 rounded-lg hover:bg-white/10 text-white transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
+                        className="p-2 sm:p-2 rounded-lg hover:bg-white/10 text-white transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
                         aria-label={isPaused ? "Play" : "Pause"}
                       >
-                        {isPaused ? (
-                          <Play size={22} className="fill-white sm:size-[18px]" />
+                          {isPaused ? (
+                          <Play size={16} className="fill-white sm:size-[18px]" />
                         ) : (
-                          <Pause size={22} className="fill-white sm:size-[18px]" />
+                          <Pause size={16} className="fill-white sm:size-[18px]" />
                         )}
                       </button>
-                      <div className="flex items-center gap-2 group/volume w-full sm:w-auto">
-                        <button
-                          onClick={handleMuteUnmute}
-                          className="p-3 sm:p-2 rounded-lg hover:bg-white/10 text-white transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
-                          aria-label={isMuted || volume === 0 ? "Unmute" : "Mute"}
-                        >
-                          {isMuted || volume === 0 ? (
-                            <VolumeX size={22} className="sm:size-[18px]" />
-                          ) : (
-                            <Volume2 size={22} className="sm:size-[18px]" />
-                          )}
-                        </button>
-                        <div className="hidden sm:flex items-center gap-1.5">
-                          <input
-                            type="range"
-                            min="0"
-                            max="1"
-                            step="0.05"
-                            value={isMuted ? 0 : volume}
-                            onChange={handleVolumeChangeSlider}
-                            className="w-20 h-1.5 rounded-lg appearance-none cursor-pointer outline-none transition-all [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-3.5 [&::-webkit-slider-thumb]:w-3.5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:shadow-md [&::-moz-range-thumb]:h-3.5 [&::-moz-range-thumb]:w-3.5 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-white [&::-moz-range-thumb]:border-none [&::-moz-range-thumb]:shadow-md"
-                            style={{
-                              background: `linear-gradient(to right, #F5A623 0%, #F5A623 ${(isMuted ? 0 : volume) * 100
-                                }%, rgba(255, 255, 255, 0.25) ${(isMuted ? 0 : volume) * 100
-                                }%, rgba(255, 255, 255, 0.25) 100%)`,
-                            }}
-                            aria-label="Volume"
-                          />
-                        </div>
-                        <div className="flex sm:hidden items-center gap-1">
-                          <button
-                            onClick={() => {
-                              const video = videoRef.current;
-                              if (!video) return;
-                              const newVol = Math.max(0, (isMuted ? 0 : volume) - 0.1);
-                              video.volume = newVol;
-                              setVolume(newVol);
-                              if (newVol > 0) {
-                                video.muted = false;
-                                userMutedRef.current = false;
-                                setIsMuted(false);
-                              } else {
-                                video.muted = true;
-                                userMutedRef.current = true;
-                                setIsMuted(true);
-                              }
-                              resetControlsTimeout();
-                            }}
-                            className="p-2 rounded-lg hover:bg-white/10 text-white transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
-                            aria-label="Volume down"
-                          >
-                            <VolumeX size={18} />
-                          </button>
-                          <button
-                            onClick={() => {
-                              const video = videoRef.current;
-                              if (!video) return;
-                              const newVol = Math.min(1, (isMuted ? 0 : volume) + 0.1);
-                              video.volume = newVol;
-                              setVolume(newVol);
-                              if (newVol > 0) {
-                                video.muted = false;
-                                userMutedRef.current = false;
-                                setIsMuted(false);
-                              }
-                              resetControlsTimeout();
-                            }}
-                            className="p-2 rounded-lg hover:bg-white/10 text-white transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
-                            aria-label="Volume up"
-                          >
-                            <Volume2 size={18} />
-                          </button>
-                        </div>
+                      <button
+                        onClick={handleMuteUnmute}
+                        className="p-2 sm:p-2 rounded-lg hover:bg-white/10 text-white transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
+                        aria-label={isMuted || volume === 0 ? "Unmute" : "Mute"}
+                      >
+                        {isMuted || volume === 0 ? (
+                          <VolumeX size={16} className="sm:size-[18px]" />
+                        ) : (
+                          <Volume2 size={16} className="sm:size-[18px]" />
+                        )}
+                      </button>
+                      <div className={`${isFullscreen ? 'flex' : 'hidden'} sm:flex items-center gap-1.5`}>
+                        <input
+                          type="range"
+                          min="0"
+                          max="1"
+                          step="0.05"
+                          value={isMuted ? 0 : volume}
+                          onChange={handleVolumeChangeSlider}
+                          className="w-16 sm:w-20 h-1.5 rounded-lg appearance-none cursor-pointer outline-none transition-all [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-3.5 [&::-webkit-slider-thumb]:w-3.5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:shadow-md [&::-moz-range-thumb]:h-3.5 [&::-moz-range-thumb]:w-3.5 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-white [&::-moz-range-thumb]:border-none [&::-moz-range-thumb]:shadow-md"
+                          style={{
+                            background: `linear-gradient(to right, #F5A623 0%, #F5A623 ${(isMuted ? 0 : volume) * 100
+                              }%, rgba(255, 255, 255, 0.25) ${(isMuted ? 0 : volume) * 100
+                              }%, rgba(255, 255, 255, 0.25) 100%)`,
+                          }}
+                          aria-label="Volume"
+                        />
                       </div>
                     </div>
 
-                    {/* Center LIVE badge */}
-                    <div className="flex items-center gap-1 bg-rose-600/90 text-white font-bold text-[9px] sm:text-[10px] tracking-wider uppercase px-2.5 py-0.5 rounded border border-rose-500/30 animate-pulse select-none w-full sm:w-auto justify-center">
-                      <span className="h-1.5 w-1.5 rounded-full bg-white"></span>
-                      <span>LIVE</span>
-                    </div>
-
-                    {/* Right controls - PiP, Reload, Fullscreen */}
-                    <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
-                      {isPipSupported && (
-                        <button
-                          onClick={handlePip}
-                          className={`p-3 sm:p-2 rounded-lg hover:bg-white/10 text-white transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center ${isPip ? "text-primary bg-white/10" : ""
-                            }`}
-                          title="Picture in Picture"
-                          aria-label="Picture in Picture"
-                        >
-                          <PictureInPicture size={22} className="sm:size-[18px]" />
-                        </button>
-                      )}
+                    {/* Right controls - Reload, Quality, Fullscreen */}
+                    <div className="flex items-center gap-1 sm:gap-2">
                       <button
                         onClick={handleReload}
-                        className="p-3 sm:p-2 rounded-lg hover:bg-white/10 text-white transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
+                        className="p-2 sm:p-2 rounded-lg hover:bg-white/10 text-white transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
                         title="Reload Stream"
                         aria-label="Reload Stream"
                       >
-                        <RotateCw size={22} className="sm:size-[18px]" />
+                        <RotateCw size={16} className="sm:size-[18px]" />
                       </button>
+
+                      {availableQualities.length > 0 && (
+                        <div className="relative" ref={qualityMenuRef}>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setShowQualityMenu((prev) => !prev);
+                            }}
+                            className="p-2 sm:p-2 rounded-lg hover:bg-white/10 text-white transition-colors min-h-[44px] min-w-[44px] flex items-center gap-1.5"
+                            title="Video Quality"
+                            aria-label="Video Quality"
+                          >
+                            <Settings size={16} className="sm:size-[18px]" />
+                            <span className="text-[10px] font-bold tracking-wider hidden sm:inline">
+                              {qualityLevel === "auto" ? "AUTO" : `${qualityLevel}`}
+                            </span>
+                          </button>
+
+                          {showQualityMenu && (
+                            <div className="absolute bottom-full right-0 mb-2 bg-black/95 border border-white/15 rounded-xl shadow-2xl overflow-hidden min-w-[140px] backdrop-blur-xl z-50">
+                              <div className="px-3 py-2 border-b border-white/10">
+                                <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Quality</span>
+                              </div>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleQualityChange("auto");
+                                }}
+                                className={`w-full flex items-center justify-between px-3 py-2.5 text-xs font-bold transition-colors ${
+                                  qualityLevel === "auto"
+                                    ? "text-primary bg-primary/10"
+                                    : "text-white hover:bg-white/10"
+                                }`}
+                              >
+                                <span>Auto (Recommended)</span>
+                                {qualityLevel === "auto" && <Check size={14} className="text-primary" />}
+                              </button>
+                              {availableQualities.map((q) => (
+                                <button
+                                  key={q.index}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleQualityChange(q.label);
+                                  }}
+                                  className={`w-full flex items-center justify-between px-3 py-2.5 text-xs font-bold transition-colors ${
+                                    qualityLevel === q.label
+                                      ? "text-primary bg-primary/10"
+                                      : "text-white hover:bg-white/10"
+                                  }`}
+                                >
+                                  <span>{q.label}</span>
+                                  {qualityLevel === q.label && <Check size={14} className="text-primary" />}
+                                </button>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      )}
 
                       <button
                         onClick={handleFullscreen}
-                        className="p-3 sm:p-2 rounded-lg hover:bg-white/10 text-white transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
+                        className="p-2 sm:p-2 rounded-lg hover:bg-white/10 text-white transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
                         aria-label={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
                       >
-                        {isFullscreen ? (
-                          <Minimize size={22} className="sm:size-[18px]" />
+                          {isFullscreen ? (
+                          <Minimize size={16} className="sm:size-[18px]" />
                         ) : (
-                          <Maximize size={22} className="sm:size-[18px]" />
+                          <Maximize size={16} className="sm:size-[18px]" />
                         )}
                       </button>
                     </div>
@@ -1678,7 +1942,10 @@ export default function IPTVPlayer({ activePlaylistId, onPlaylistChange }: IPTVP
               id="worldcup-live-section"
               className={`${!isFullscreen ? "w-full lg:w-1/3 xl:w-1/4" : "hidden"}`}
             >
-              <div className="glass-card p-4 sm:p-5 border border-[#F5A623]/20 rounded-2xl md:rounded-3xl bg-[#F5A623]/[0.02] flex flex-col h-full max-h-[400px] lg:max-h-none lg:h-full">
+              <div
+                className="glass-card p-4 sm:p-5 border border-[#F5A623]/20 rounded-2xl md:rounded-3xl bg-[#F5A623]/[0.02] flex flex-col max-h-[500px]"
+                style={!isFullscreen && isLargeScreen && playerHeight > 0 ? { height: playerHeight } : undefined}
+              >
                 <div className="flex items-center gap-2 pb-3 border-b border-[#F5A623]/10 mb-3">
                   <span className="text-lg">🏆</span>
                   <div className="flex-1 min-w-0">
@@ -1689,7 +1956,7 @@ export default function IPTVPlayer({ activePlaylistId, onPlaylistChange }: IPTVP
                   </div>
                   <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse flex-shrink-0" />
                 </div>
-                <div className="flex-1 overflow-y-auto custom-scrollbar space-y-2 pr-1">
+                <div className="flex-1 overflow-y-auto min-h-0 custom-scrollbar space-y-2 pr-1">
                   {WORLDCUP_LIVE_CHANNELS.map((chan) => {
                     const isSelected = selectedChannel?.id === chan.id;
                     return (
@@ -1733,75 +2000,13 @@ export default function IPTVPlayer({ activePlaylistId, onPlaylistChange }: IPTVP
             </div>
           </div>
 
-          {/* 2. Grid for Channel Details & Channel Count Stats */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full">
-            {/* Channel Details Card / Skeleton */}
-            {selectedChannel ? (
-              <motion.div
-                key={selectedChannel.id}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className={`md:col-span-1 glass-card p-4 sm:p-6 border border-white/10 sm:border-white/5 rounded-2xl md:rounded-3xl flex flex-row items-center justify-start gap-4 text-left bg-white/[0.01] w-full ${playerStatus === "loading" ? "animate-pulse" : ""
-                  }`}
-              >
-                {selectedChannel.logo ? (
-                  <Image
-                    src={selectedChannel.logo}
-                    alt={selectedChannel.name}
-                    width={56}
-                    height={56}
-                    onError={(e) => {
-                      (e.currentTarget as HTMLElement).style.display = "none";
-                    }}
-                    className="w-10 h-10 sm:w-14 sm:h-14 object-contain rounded-xl sm:rounded-2xl bg-white/5 p-0.5 sm:p-1 border border-white/10 flex-shrink-0"
-                  />
-                ) : (
-                  <div className="w-10 h-10 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl bg-gradient-to-tr from-primary/30 to-violet-500/30 flex items-center justify-center font-bold text-sm sm:text-base text-primary border border-primary/20 flex-shrink-0">
-                    {getInitials(selectedChannel.name)}
-                  </div>
-                )}
-                <div className="space-y-1 min-w-0">
-                  <h2 className="text-base sm:text-lg md:text-xl font-bold truncate">
-                    {selectedChannel.name}
-                  </h2>
-                  <span className="text-[9px] sm:text-[10px] uppercase font-bold tracking-widest text-primary bg-primary/10 px-1.5 sm:px-2 py-0.5 rounded border border-primary/20 block w-fit">
-                    {selectedChannel.group}
-                  </span>
-                </div>
-              </motion.div>
-            ) : (
-              <div className="md:col-span-1 glass-card p-4 sm:p-6 border border-white/10 sm:border-white/5 rounded-2xl md:rounded-3xl flex flex-row items-center justify-start gap-4 text-left bg-white/[0.01] w-full">
-                <div className="w-10 h-10 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl bg-primary/10 border border-primary/20 flex-shrink-0 flex items-center justify-center">
-                  <Tv size={20} className="text-primary" />
-                </div>
-                <div className="space-y-1 min-w-0">
-                  <h2 className="text-base sm:text-lg font-bold text-gray-300">Select a Channel</h2>
-                  <span className="text-[9px] sm:text-[10px] uppercase font-bold tracking-widest text-zinc-400">Choose from the list below</span>
-                </div>
-              </div>
-            )}
 
-            {/* Channel Count Card */}
-            <div className="glass-card p-4 sm:p-6 border border-white/10 sm:border-white/5 rounded-2xl md:rounded-3xl flex flex-row items-center justify-start gap-4 text-left bg-white/[0.01] w-full md:col-span-1">
-              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary flex-shrink-0">
-                <Tv size={20} className="animate-pulse" />
-              </div>
-              <div className="space-y-0.5 min-w-0">
-                <p className="text-[9px] sm:text-[10px] uppercase font-bold tracking-widest text-zinc-400 truncate">
-                  Total Channels
-                </p>
-                <h3 className="text-base sm:text-lg font-bold text-emerald-400 truncate">
-                  {channels.length} Channels
-                </h3>
-              </div>
-            </div>
-          </div>
 
           {/* 3. Main Content Area: Sidebar + Channel List */}
           <div id="channels-section" className="flex flex-col lg:flex-row gap-6 w-full">
             
             {/* Sidebar: Your Playlists */}
-            <div className="w-full lg:w-1/3 xl:w-1/4 glass-card p-4 sm:p-6 border border-white/10 sm:border-white/5 rounded-2xl md:rounded-3xl bg-white/[0.01] flex flex-col max-h-[280px] lg:max-h-none lg:h-[600px] xl:h-[700px]">
+            <div className="order-1 lg:order-none w-full lg:w-1/3 xl:w-1/4 glass-card p-4 sm:p-6 border border-white/10 sm:border-white/5 rounded-2xl md:rounded-3xl bg-white/[0.01] flex flex-col max-h-[280px] lg:max-h-none lg:h-[600px] xl:h-[700px]">
               <div className="flex items-center justify-between pb-3 sm:pb-4 border-b border-white/10 sm:border-white/5 mb-3 sm:mb-4">
                 <div className="flex items-center bg-white/5 p-1 rounded-xl border border-white/10 sm:border-white/5 w-full">
                   <div className="flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-xs sm:text-sm font-bold w-full bg-primary text-white shadow-lg shadow-primary/20 cursor-default">
@@ -1811,7 +2016,7 @@ export default function IPTVPlayer({ activePlaylistId, onPlaylistChange }: IPTVP
                 </div>
               </div>
               <div className="flex-1 overflow-y-auto custom-scrollbar pr-1 space-y-2.5">
-                {playlists.map((pl) => {
+                {playlists.filter(pl => pl.id !== "worldcup-live").map((pl) => {
                   const isActive = pl.id === activePlaylistId;
                   return (
                     <div
@@ -1855,7 +2060,6 @@ export default function IPTVPlayer({ activePlaylistId, onPlaylistChange }: IPTVP
                           pl.id !== "default" &&
                           pl.id !== "home" &&
                           pl.id !== "sports" &&
-                          pl.id !== "entertainment" &&
                           pl.id !== "universal" &&
                           pl.id !== "bangla" &&
                           pl.id !== "worldcup-live" && (
@@ -1876,51 +2080,19 @@ export default function IPTVPlayer({ activePlaylistId, onPlaylistChange }: IPTVP
 
             {/* Channel List Card */}
             <div className="w-full lg:w-2/3 xl:w-3/4 glass-card p-4 sm:p-6 border border-white/10 sm:border-white/5 rounded-2xl md:rounded-3xl bg-white/[0.01] flex flex-col h-[600px] sm:h-[700px]">
-            {/* Playlist Header & Tab Bar */}
-            <div className="flex items-center justify-between pb-3 sm:pb-4 border-b border-white/10 sm:border-white/5 mb-3 sm:mb-4 flex-wrap gap-2">
-              <div className="flex items-center bg-white/5 p-1 rounded-xl border border-white/10 sm:border-white/5 w-full sm:w-auto">
-                <button
-                  onClick={() => setPlaylistTab("browse")}
-                  className={`flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] sm:text-sm font-bold transition-all flex-1 sm:flex-initial ${playlistTab === "browse"
-                      ? "bg-primary text-white shadow-lg shadow-primary/20"
-                      : "text-zinc-300 hover:text-white"
-                    }`}
-                >
-                  <Tv size={14} />
-                  <span className="whitespace-nowrap">Browse Channels</span>
-                </button>
-                <button
-                  onClick={() => setPlaylistTab("manage")}
-                  className={`flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] sm:text-sm font-bold transition-all flex-1 sm:flex-initial ${playlistTab === "manage"
-                      ? "bg-primary text-white shadow-lg shadow-primary/20"
-                      : "text-zinc-300 hover:text-white"
-                    }`}
-                >
-                  <Upload size={14} />
-                  <span className="whitespace-nowrap">Playlists Manager</span>
-                </button>
-              </div>
-
-              {/* Display active playlist name & watcher count */}
-              <div className="flex items-center bg-white/5 p-1 rounded-xl border border-white/10 sm:border-white/5 w-full sm:w-auto justify-between sm:justify-start">
-                {viewerCount !== null && (
-                  <>
-                    <div className="flex items-center gap-1.5 sm:gap-2 px-3 py-1.5 rounded-lg text-[10px] sm:text-xs text-zinc-300 select-none">
-                      <span className="h-1.5 w-1.5 rounded-full bg-blue-500 animate-pulse shrink-0" />
-                      <span className="text-white font-bold whitespace-nowrap">
-                        {viewerCount} {viewerCount === 1 ? "Watcher" : "Watchers"}
-                      </span>
-                    </div>
-                    <div className="hidden sm:block h-4 w-[1px] bg-white/10 mx-1 flex-shrink-0" />
-                  </>
-                )}
-
-                <div className="flex items-center gap-1.5 sm:gap-2 px-3 py-1.5 rounded-lg text-[10px] sm:text-xs text-zinc-300 select-none max-w-[180px] sm:max-w-[260px] truncate">
-                  <span className="font-semibold shrink-0">Playlist:</span>
-                  <span className="text-white font-bold truncate">
-                    {playlists.find((p) => p.id === activePlaylistId)?.name}
+            {/* Playlist Header */}
+            <div className="flex items-center justify-end gap-2 pb-3 sm:pb-4 border-b border-white/10 sm:border-white/5 mb-3 sm:mb-4">
+              {viewerCount !== null && (
+                <div className="flex items-center gap-1.5 sm:gap-2 px-3 py-1.5 rounded-lg text-[10px] sm:text-xs text-zinc-300 select-none bg-white/5 border border-white/10 sm:border-white/5">
+                  <span className="h-1.5 w-1.5 rounded-full bg-blue-500 animate-pulse shrink-0" />
+                  <span className="text-white font-bold whitespace-nowrap">
+                    {viewerCount} {viewerCount === 1 ? "Watcher" : "Watchers"}
                   </span>
                 </div>
+              )}
+              <div className="flex items-center gap-1.5 sm:gap-2 px-3 py-1.5 rounded-lg text-[10px] sm:text-xs text-zinc-300 select-none bg-white/5 border border-white/10 sm:border-white/5">
+                <Tv size={14} />
+                <span className="text-white font-bold whitespace-nowrap">{channels.length} Channels</span>
               </div>
             </div>
 
@@ -2158,6 +2330,24 @@ export default function IPTVPlayer({ activePlaylistId, onPlaylistChange }: IPTVP
           </div>
 
 
+          {/* Playlists Manager Button */}
+          <div className="flex justify-center pt-4">
+            <button
+              onClick={() => {
+                setPlaylistTab(playlistTab === "manage" ? "browse" : "manage");
+                setTimeout(() => {
+                  document.getElementById("channels-section")?.scrollIntoView({ behavior: "smooth", block: "start" });
+                }, 100);
+              }}
+              className={`flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all shadow-lg ${playlistTab === "manage"
+                  ? "bg-primary text-white shadow-primary/20"
+                  : "bg-white/5 text-zinc-300 hover:text-white hover:bg-white/10 border border-white/10"
+                }`}
+            >
+              <Upload size={16} />
+              <span>Playlists Manager</span>
+            </button>
+          </div>
         </div>
       )}
     </div>
@@ -2166,12 +2356,78 @@ export default function IPTVPlayer({ activePlaylistId, onPlaylistChange }: IPTVP
 
 function WorldCupHub() {
   const [activeTab, setActiveTab] = useState<"matches" | "groups">("matches");
+  const [liveData, setLiveData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
   const today = new Date().toISOString().split("T")[0];
 
-  const todayMatches = worldCupData.matches.filter((m) => m.date === today);
-  const upcomingMatches = worldCupData.matches.filter(
-    (m) => m.date > today && m.stage === "Group Stage"
+  useEffect(() => {
+    let active = true;
+    const fetchWorldCup = async () => {
+      try {
+        const res = await fetch("/api/worldcup");
+        if (res.ok) {
+          const json = await res.json();
+          if (active) {
+            setLiveData(json);
+          }
+        }
+      } catch (err) {
+        console.error("Error fetching live world cup data:", err);
+      } finally {
+        if (active) setLoading(false);
+      }
+    };
+    fetchWorldCup();
+    const interval = setInterval(fetchWorldCup, 30000);
+    return () => {
+      active = false;
+      clearInterval(interval);
+    };
+  }, []);
+
+  const matches = liveData?.matches || [];
+  const groups = liveData?.groups || [];
+
+  const todayMatches = matches.filter((m: any) => m.date === today);
+  const upcomingMatches = matches.filter(
+    (m: any) => m.date > today && m.stage === "Group Stage"
   ).slice(0, 10);
+
+  if (loading) {
+    return (
+      <div className="glass-card p-4 sm:p-6 border border-white/10 rounded-2xl md:rounded-3xl bg-white/[0.01]">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="flex items-center gap-2">
+            <span className="text-2xl">🏆</span>
+            <div>
+              <h2 className="text-lg sm:text-xl font-black text-white">FIFA World Cup 2026</h2>
+              <p className="text-[10px] sm:text-xs text-zinc-400 font-medium">USA &middot; Canada &middot; Mexico</p>
+            </div>
+          </div>
+          <div className="ml-auto flex items-center gap-1 bg-rose-600/90 text-white font-bold text-[9px] tracking-wider uppercase px-2 py-1 rounded border border-rose-500/30 animate-pulse">
+            <span className="h-1.5 w-1.5 rounded-full bg-white" />
+            <span>LIVE</span>
+          </div>
+        </div>
+        <div className="flex items-center gap-1 bg-white/5 p-1 rounded-xl border border-white/10 w-fit mb-4">
+          <button className="px-3 py-1.5 rounded-lg text-xs font-bold transition-all bg-[#F5A623] text-black shadow-lg">
+            Fixtures &amp; Schedule
+          </button>
+          <button className="px-3 py-1.5 rounded-lg text-xs font-bold transition-all text-zinc-400 hover:text-white">
+            Group Standings
+          </button>
+        </div>
+        <div className="space-y-3">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <div key={i} className="h-12 bg-white/5 rounded-lg animate-pulse border border-white/10" />
+          ))}
+        </div>
+        <div className="mt-3 text-[9px] text-zinc-500 text-center">
+          Loading live match data...
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="glass-card p-4 sm:p-6 border border-white/10 rounded-2xl md:rounded-3xl bg-white/[0.01]">
@@ -2221,43 +2477,83 @@ function WorldCupHub() {
             <div className="mb-4 p-3 rounded-xl border border-[#F5A623]/20 bg-[#F5A623]/5">
               <p className="text-[10px] font-bold tracking-widest text-[#F5A623] uppercase mb-2">🔴 Today&apos;s Matches</p>
               <div className="space-y-2">
-                {todayMatches.map((m) => (
-                  <div key={m.id} className="flex items-center justify-between text-sm gold-pulse rounded-lg p-2 bg-[#F5A623]/10 border border-[#F5A623]/20">
-                    <span className="font-bold text-white">{m.home}</span>
-                    <span className="text-[10px] text-[#F5A623] font-bold mx-2">VS</span>
-                    <span className="font-bold text-white">{m.away}</span>
-                    <span className="text-[10px] text-zinc-400 ml-2">{m.time} UTC</span>
+                {todayMatches.map((m: any) => (
+                  <div key={m.id} className="flex items-center justify-between text-sm gold-pulse rounded-lg p-2.5 bg-[#F5A623]/10 border border-[#F5A623]/20">
+                    <span className="font-bold text-white flex items-center gap-1.5">
+                      {m.homeFlag && <img src={m.homeFlag} className="w-8 h-5 object-cover rounded" alt="" />}
+                      <span className="hidden sm:inline">{m.home}</span>
+                    </span>
+                    <span className="text-xs text-[#F5A623] font-bold mx-2">
+                      {m.homeScore !== null && m.awayScore !== null ? `${m.homeScore} - ${m.awayScore}` : "VS"}
+                    </span>
+                    <span className="font-bold text-white flex items-center gap-1.5">
+                      <span className="hidden sm:inline">{m.away}</span>
+                      {m.awayFlag && <img src={m.awayFlag} className="w-8 h-5 object-cover rounded" alt="" />}
+                    </span>
+                    <div className="flex items-center gap-1.5 ml-2">
+                      <span className="text-[10px] text-zinc-400">{m.time} UTC</span>
+                      {m.live && (
+                        <span className="px-1 py-0.5 rounded bg-rose-600 text-white text-[8px] font-extrabold animate-pulse">LIVE</span>
+                      )}
+                    </div>
                   </div>
                 ))}
               </div>
             </div>
           )}
 
-          {/* Upcoming Matches Table */}
+          {/* Matches Table */}
           <div className="overflow-x-auto">
+            {matches.length > 0 ? (
             <table className="wc-table w-full">
               <thead>
                 <tr>
                   <th>Date</th>
                   <th>Time (UTC)</th>
-                  <th>Home</th>
-                  <th></th>
-                  <th>Away</th>
+                  <th className="text-right">Home</th>
+                  <th className="text-center">Score</th>
+                  <th className="text-left">Away</th>
                   <th>Venue</th>
                   <th>Stage</th>
                 </tr>
               </thead>
               <tbody>
-                {(todayMatches.length > 0 ? todayMatches : upcomingMatches).map((m) => {
+                {(todayMatches.length > 0 ? todayMatches : upcomingMatches).map((m: any) => {
                   const isToday = m.date === today;
                   return (
                     <tr key={m.id} className={isToday ? "today-match" : ""}>
                       <td className="whitespace-nowrap">{m.date}</td>
-                      <td className="whitespace-nowrap">{m.time}</td>
-                      <td className="font-bold text-white">{m.home}</td>
-                      <td className="text-[#F5A623] font-bold text-center px-1">VS</td>
-                      <td className="font-bold text-white">{m.away}</td>
-                      <td className="text-zinc-300 text-[11px]">{m.venue}</td>
+                      <td className="whitespace-nowrap">
+                        <span className="inline-flex items-center gap-1">
+                          {m.time}
+                          {m.live && (
+                            <span className="px-1 py-0.5 rounded bg-rose-600 text-white text-[8px] font-extrabold animate-pulse">LIVE</span>
+                          )}
+                          {m.finished && (
+                            <span className="px-1 py-0.5 rounded bg-zinc-700 text-zinc-300 text-[8px] font-bold">FT</span>
+                          )}
+                        </span>
+                      </td>
+                      <td className="font-bold text-white text-right">
+                        <span className="inline-flex items-center gap-1.5">
+                          {m.home}
+                          {m.homeFlag && <img src={m.homeFlag} className="w-8 h-5 object-cover rounded border border-white/10" alt="" />}
+                        </span>
+                      </td>
+                      <td className="text-center px-2">
+                        {m.homeScore !== null && m.awayScore !== null ? (
+                          <span className="bg-white/10 px-2.5 py-0.5 rounded text-white font-mono text-xs">{m.homeScore} - {m.awayScore}</span>
+                        ) : (
+                          <span className="text-[#F5A623] font-bold text-[10px]">VS</span>
+                        )}
+                      </td>
+                      <td className="font-bold text-white text-left">
+                        <span className="inline-flex items-center gap-1.5">
+                          {m.awayFlag && <img src={m.awayFlag} className="w-8 h-5 object-cover rounded border border-white/10" alt="" />}
+                          {m.away}
+                        </span>
+                      </td>
+                      <td className="text-zinc-300 text-[11px] whitespace-nowrap truncate max-w-[150px]">{m.venue}</td>
                       <td>
                         <span className={`text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded ${
                           m.stage === "Final" ? "bg-[#F5A623]/20 text-[#F5A623]" :
@@ -2272,40 +2568,79 @@ function WorldCupHub() {
                 })}
               </tbody>
             </table>
+            ) : (
+              <div className="text-center py-8 text-zinc-500 text-sm font-medium">
+                No match data available yet.
+              </div>
+            )}
           </div>
 
           <p className="mt-3 text-[9px] text-zinc-500 text-center">
-            * Full 48-team, 104-match schedule. Results update after matches air on live streams.
+            * Schedules and standings update live after matches air on live streams.
           </p>
         </>
       ) : (
         <>
           {/* Group Standings Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            {worldCupData.groups.map((group) => (
-              <div
-                key={group.id}
-                className="rounded-xl border border-white/10 bg-white/[0.02] p-3"
-              >
-                <h4 className="text-xs font-bold text-[#F5A623] mb-2 tracking-wider uppercase">
-                  {group.name}
-                </h4>
-                <div className="space-y-1">
-                  {group.teams.map((team, idx) => (
-                    <div
-                      key={team}
-                      className="flex items-center gap-2 text-xs text-zinc-300"
-                    >
-                      <span className="w-4 text-[10px] text-zinc-500 font-bold">{idx + 1}.</span>
-                      <span className="font-medium">{team}</span>
-                      {team === "USA" || team === "Canada" || team === "Mexico" ? (
-                        <span className="text-[9px] text-emerald-400 font-bold">(Host)</span>
-                      ) : null}
-                    </div>
-                  ))}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+            {groups.length > 0 ? groups.map((group: any) => {
+              const hasStats = group.teams && group.teams[0] && typeof group.teams[0] === "object" && "pts" in group.teams[0];
+              return (
+                <div
+                  key={group.id}
+                  className="rounded-xl border border-white/10 bg-white/[0.02] p-3 flex flex-col"
+                >
+                  <h4 className="text-xs font-bold text-[#F5A623] mb-2.5 tracking-wider uppercase">
+                    {group.name}
+                  </h4>
+                  <div className="flex-1">
+                    {hasStats ? (
+                      <table className="w-full text-[11px] text-zinc-300">
+                        <thead>
+                          <tr className="text-[9px] text-zinc-500 font-bold border-b border-white/5 pb-1">
+                            <th className="text-left w-5 pb-1">#</th>
+                            <th className="text-left pb-1">Team</th>
+                            <th className="text-center w-6 pb-1">P</th>
+                            <th className="text-center w-6 pb-1">GD</th>
+                            <th className="text-center w-6 pb-1 text-[#F5A623]">Pts</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {group.teams.map((team: any, idx: number) => (
+                            <tr key={team.name} className="border-b border-white/[0.02] last:border-0 hover:bg-white/[0.02]">
+                              <td className="py-1 text-zinc-500 font-bold">{idx + 1}</td>
+                              <td className="py-1 font-bold text-white flex items-center gap-1">
+                                {team.flag && <img src={team.flag} className="w-7 h-4.5 object-cover rounded border border-white/10" alt="" />}
+                                <span className="truncate max-w-[80px]">{team.name}</span>
+                              </td>
+                              <td className="py-1 text-center text-zinc-400">{team.mp}</td>
+                              <td className="py-1 text-center text-zinc-400">{team.gd > 0 ? `+${team.gd}` : team.gd}</td>
+                              <td className="py-1 text-center font-bold text-[#F5A623]">{team.pts}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    ) : (
+                      <div className="space-y-1">
+                        {group.teams.map((team: string, idx: number) => (
+                          <div
+                            key={team}
+                            className="flex items-center gap-2 text-xs text-zinc-300"
+                          >
+                            <span className="w-4 text-[10px] text-zinc-500 font-bold">{idx + 1}.</span>
+                            <span className="font-medium">{team}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
+              );
+            }) : (
+              <div className="col-span-full text-center py-8 text-zinc-500 text-sm font-medium">
+                No standings data available yet.
               </div>
-            ))}
+            )}
           </div>
           <p className="mt-3 text-[9px] text-zinc-500 text-center">
             Group stage with 48 teams across 12 groups. Top 2 from each group + 8 best 3rd-placed teams advance to Round of 32.

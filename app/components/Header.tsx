@@ -2,15 +2,11 @@
 
 import { useState, useEffect } from "react";
 import { motion } from "motion/react";
-import { Tv } from "lucide-react";
+import Image from "next/image";
 
 const NAV_TABS = [
   { id: "home", label: "Home", emoji: "🏠" },
   { id: "worldcup-live", label: "World Cup Live", emoji: "🏆" },
-  { id: "sports", label: "Sports", emoji: "⚽" },
-  { id: "entertainment", label: "Entertainment", emoji: "🎬" },
-  { id: "bangla", label: "Bangla", emoji: "🇧🇩" },
-  { id: "universal", label: "All Channels", emoji: "🌍" },
 ] as const;
 
 interface HeaderProps {
@@ -50,7 +46,7 @@ export default function Header({ activePlaylistId = "home", onPlaylistChange = (
           : "bg-transparent border-transparent"
         }`}
     >
-      <div className="max-w-7xl mx-auto px-4 sm:px-6">
+      <div className="max-w-full mx-auto px-4 sm:px-6 lg:px-10 xl:px-12 2xl:px-16">
         <div className="flex items-center justify-between h-16 sm:h-22">
           <div onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })} className="cursor-pointer">
             <motion.div
@@ -59,8 +55,8 @@ export default function Header({ activePlaylistId = "home", onPlaylistChange = (
               transition={{ duration: 0.6, ease: "easeOut" }}
               className="flex items-center gap-2.5 sm:gap-4.5 cursor-pointer group"
             >
-              <div className="relative w-10 h-10 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl overflow-hidden border border-[#F5A623]/30 group-hover:border-[#F5A623]/60 shadow-xl shadow-[#F5A623]/20 bg-[#F5A623]/10 flex-shrink-0 flex items-center justify-center transition-colors">
-                <Tv size={24} className="text-[#F5A623]" />
+              <div className="relative w-[47.5px] h-[47.5px] sm:w-[66.5px] sm:h-[66.5px] rounded-xl sm:rounded-2xl overflow-hidden border border-[#F5A623]/30 group-hover:border-[#F5A623]/60 shadow-xl shadow-[#F5A623]/20 bg-[#F5A623]/10 flex-shrink-0 flex items-center justify-center transition-colors">
+                <Image src="/header.jpg" alt="Sadik TV" width={70} height={70} className="w-full h-full object-cover" priority />
               </div>
               <div className="flex flex-col justify-center">
                 <span className="text-lg font-black tracking-tight text-white sm:hidden leading-none select-none">

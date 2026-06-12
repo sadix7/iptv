@@ -57,6 +57,30 @@ export default function BackgroundScene() {
           backgroundSize: "40px 40px",
         }}
       />
+
+      {/* Decorative side panels for ultra-wide screens - subtle glowing edge columns */}
+      <div
+        className="hidden 2xl:block side-glow-left side-glow-pulse"
+        style={{
+          position: "absolute",
+          top: 0,
+          left: 0,
+          width: "clamp(120px, 8vw, 240px)",
+          height: "100%",
+          pointerEvents: "none",
+        }}
+      />
+      <div
+        className="hidden 2xl:block side-glow-right side-glow-pulse"
+        style={{
+          position: "absolute",
+          top: 0,
+          right: 0,
+          width: "clamp(120px, 8vw, 240px)",
+          height: "100%",
+          pointerEvents: "none",
+        }}
+      />
     </div>
   );
 }

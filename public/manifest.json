@@ -1,7 +1,7 @@
 {
-  "name": "IPTV Player",
-  "short_name": "IPTV Player",
-  "description": "Stream 6500+ live TV channels from Bangladesh, India, and worldwide. Premium IPTV web player.",
+  "name": "SadikTV",
+  "short_name": "SadikTV",
+  "description": "Stream live sports, World Cup 2026, and 7,500+ global TV channels. Free. No login.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#070414",
@@ -21,5 +21,5 @@
       "purpose": "any"
     }
   ],
-  "categories": ["entertainment", "lifestyle"]
+  "categories": ["sports", "lifestyle"]
 }

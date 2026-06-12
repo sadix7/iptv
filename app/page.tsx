@@ -6,7 +6,7 @@ import Header from "./components/Header";
 import IPTVPlayer from "./components/IPTVPlayer";
 
 export default function Home() {
-  const [activePlaylistId, setActivePlaylistId] = useState("home");
+  const [activePlaylistId, setActivePlaylistId] = useState("worldcup-live");
 
   return (
     <main className="relative min-h-screen">

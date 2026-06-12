@@ -505,13 +505,6 @@
         "id": "banglavision-6"
     },
     {
-        "name": "BTV HD",
-        "logo": "https://static.wikia.nocookie.net/logopedia/images/1/12/BTV_HD_Logo.svg",
-        "group": "Bangla",
-        "url": "https://owrcovcrpy.gpcdn.net/bpk-tv/1709/output/index.m3u8",
-        "id": "btvhd-9"
-    },
-    {
         "name": "G-Serise",
         "logo": "https://upload.wikimedia.org/wikipedia/en/c/ce/G-Series_Logo.png",
         "group": "Bangla",

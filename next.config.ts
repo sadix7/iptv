@@ -2,7 +2,7 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   output: "standalone",
-  allowedDevOrigins: ["live.shajon.dev", "192.168.0.57"],
+  allowedDevOrigins: ["localhost", "192.168.0.57"],
   images: {
     unoptimized: true,
     remotePatterns: [

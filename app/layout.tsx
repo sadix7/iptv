@@ -14,9 +14,9 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  title: "SadikTV — Watch Live TV Channels",
+    title: "Sadik TV",
   description:
-    "SadikTV — Stream live sports, World Cup 2026, entertainment, and 7,500+ global TV channels. Free. No login.",
+    "SadikTV — Stream live sports, World Cup 2026, and 7,500+ global TV channels. Free. No login.",
   keywords: [
     "IPTV",
     "live TV",
@@ -47,9 +47,9 @@ export const metadata: Metadata = {
     locale: "en_US",
     url: siteUrl,
     siteName: "SadikTV",
-    title: "SadikTV — Watch Live TV Channels",
+  title: "Sadik TV",
     description:
-      "SadikTV — Stream live sports, World Cup 2026, entertainment, and 7,500+ global TV channels. Free. No login.",
+      "SadikTV — Stream live sports, World Cup 2026, and 7,500+ global TV channels. Free. No login.",
     images: [
       {
         url: "/og-image.png",
@@ -65,7 +65,7 @@ export const metadata: Metadata = {
     apple: "/apple-icon.png",
   },
   manifest: "/manifest.json",
-  category: "entertainment",
+  category: "sports",
 };
 
 export default function RootLayout({
@@ -75,7 +75,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="h-full antialiased">
-      <body className="min-h-full flex flex-col">
+      <body className="min-h-full flex flex-col" suppressHydrationWarning>
         {children}
       </body>
     </html>

@@ -150,3 +150,27 @@
   background: rgba(245, 166, 35, 0.08);
   border-bottom: 1px solid rgba(245, 166, 35, 0.15);
 }
+
+/* Full-width layout: prevent horizontal overflow on any screen */
+html {
+  overflow-x: hidden;
+}
+
+/* Ultra-wide ambient glow animation for decorative side panels (2xl+) */
+@keyframes sideGlowPulse {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 1; }
+}
+
+.side-glow-pulse {
+  animation: sideGlowPulse 4s ease-in-out infinite;
+}
+
+/* Side glow gradient classes for decorative edge panels */
+.side-glow-left {
+  background: linear-gradient(90deg, rgba(245, 166, 35, 0.04) 0%, transparent 100%);
+}
+
+.side-glow-right {
+  background: linear-gradient(270deg, rgba(245, 166, 35, 0.04) 0%, transparent 100%);
+}
