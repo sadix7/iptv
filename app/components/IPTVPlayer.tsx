@@ -1238,15 +1238,11 @@ export default function IPTVPlayer({ activePlaylistId, onPlaylistChange }: IPTVP
             player.addEventListener("error", (event: any) => {
               const detail = event?.detail;
               console.error("[SHAKA] DASH error:", JSON.stringify(detail));
-              const code = detail?.code ?? "";
-              if (code === 6020) {
-                setPlayerStatus("error");
-              } else {
-                setPlayerStatus("error");
-              }
+              setPlayerStatus("error");
             });
 
-            await player.load(chan.url);
+            const dashUrl = getPlayableUrl(chan.url);
+            await player.load(dashUrl);
 
             if (loadedUrlRef.current !== chan.url) {
               await player.destroy().catch(() => {});
@@ -1296,7 +1292,7 @@ export default function IPTVPlayer({ activePlaylistId, onPlaylistChange }: IPTVP
             });
           } catch (err) {
             if (loadedUrlRef.current !== chan.url) return;
-            console.error("[SHAKA] Load error:", err);
+            console.error("[SHAKA] Load error:", err, "props:", Object.keys(err || {} as object));
             setPlayerStatus("error");
           }
         })();
