@@ -52,7 +52,7 @@ interface Playlist {
 }
 
 const getPlayableUrl = (url: string) => {
-  if (url && url.startsWith("http://")) {
+  if (url && (url.startsWith("http://") || url.startsWith("https://"))) {
     return `/api/iptv/proxy?url=${encodeURIComponent(url)}`;
   }
   return url;
@@ -1222,6 +1222,16 @@ export default function IPTVPlayer({ activePlaylistId, onPlaylistChange }: IPTVP
                 drm: {
                   clearKeys: { [chan.kid.toLowerCase()]: chan.key.toLowerCase() },
                 },
+              });
+            }
+
+            const netEngine = player.getNetworkingEngine();
+            if (netEngine) {
+              netEngine.registerRequestFilter((type: any, request: { uris: string[] }) => {
+                const url = request.uris[0];
+                if (url && (url.startsWith("http://") || url.startsWith("https://"))) {
+                  request.uris[0] = `/api/iptv/proxy?url=${encodeURIComponent(url)}`;
+                }
               });
             }
 

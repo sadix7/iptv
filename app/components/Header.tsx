@@ -3,18 +3,14 @@
 import { useState, useEffect } from "react";
 import { motion } from "motion/react";
 import Image from "next/image";
-
-const NAV_TABS = [
-  { id: "home", label: "Home", emoji: "🏠" },
-  { id: "worldcup-live", label: "World Cup Live", emoji: "🏆" },
-] as const;
+import { FaInstagram } from "react-icons/fa";
 
 interface HeaderProps {
   activePlaylistId?: string;
   onPlaylistChange?: (id: string) => void;
 }
 
-export default function Header({ activePlaylistId = "home", onPlaylistChange = () => {} }: HeaderProps) {
+export default function Header({}: HeaderProps) {
   const [scrolled, setScrolled] = useState(false);
   useEffect(() => {
     const handleScroll = () => {
@@ -23,21 +19,6 @@ export default function Header({ activePlaylistId = "home", onPlaylistChange = (
     window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
-
-  const scrollToChannels = (id: string) => {
-    onPlaylistChange(id);
-    setTimeout(() => {
-      if (id === "home") {
-        window.scrollTo({ top: 0, behavior: "smooth" });
-        return;
-      }
-      const targetId = id === "worldcup-live" ? "worldcup-live-section" : "channels-section";
-      const el = document.getElementById(targetId);
-      if (el) {
-        el.scrollIntoView({ behavior: "smooth", block: "start" });
-      }
-    }, 100);
-  };
 
   return (
     <header
@@ -82,23 +63,16 @@ export default function Header({ activePlaylistId = "home", onPlaylistChange = (
             </motion.div>
           </div>
 
-          {/* Navigation Tabs */}
-          <nav className="hidden md:flex items-center gap-1">
-            {NAV_TABS.map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => scrollToChannels(tab.id)}
-                className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition-all ${
-                  activePlaylistId === tab.id
-                    ? "bg-[#F5A623]/10 text-[#F5A623] border border-[#F5A623]/20"
-                    : "text-zinc-300 hover:text-white hover:bg-white/5"
-                }`}
-              >
-                <span>{tab.emoji}</span>
-                <span>{tab.label}</span>
-              </button>
-            ))}
-          </nav>
+          {/* Instagram Link */}
+          <a
+            href="https://www.instagram.com/m.h.sadik/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center justify-center w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-gradient-to-tr from-[#833AB4] via-[#FD1D1D] to-[#F77737] text-white hover:scale-110 transition-transform"
+            title="Instagram"
+          >
+            <FaInstagram className="w-4 h-4 sm:w-5 sm:h-5" />
+          </a>
 
 
         </div>
