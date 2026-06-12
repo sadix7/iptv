@@ -1292,7 +1292,13 @@ export default function IPTVPlayer({ activePlaylistId, onPlaylistChange }: IPTVP
             });
           } catch (err) {
             if (loadedUrlRef.current !== chan.url) return;
-            console.error("[SHAKA] Load error:", err, "props:", Object.keys(err || {} as object));
+            console.error("[SHAKA] Load error:", {
+              message: err instanceof Error ? err.message : err,
+              code: (err as any).code,
+              category: (err as any).category,
+              severity: (err as any).severity,
+              data: (err as any).data,
+            });
             setPlayerStatus("error");
           }
         })();
