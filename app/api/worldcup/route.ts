@@ -14,13 +14,21 @@ const fetchWithTimeout = async (url: string, timeout = 4000) => {
   }
 };
 
+const fetchData = async (url: string, fallback: any) => {
+  try {
+    return await fetchWithTimeout(url);
+  } catch {
+    return fallback;
+  }
+};
+
 export async function GET() {
   try {
     const [gamesData, groupsData, teamsData, stadiumsData] = await Promise.all([
-      fetchWithTimeout("https://worldcup26.ir/get/games"),
-      fetchWithTimeout("https://worldcup26.ir/get/groups"),
-      fetchWithTimeout("https://worldcup26.ir/get/teams"),
-      fetchWithTimeout("https://worldcup26.ir/get/stadiums"),
+      fetchData("https://worldcup26.ir/get/games", { games: [] }),
+      fetchData("https://worldcup26.ir/get/groups", { groups: [] }),
+      fetchData("https://worldcup26.ir/get/teams", { teams: [] }),
+      fetchData("https://worldcup26.ir/get/stadiums", { stadiums: [] }),
     ]);
 
     const gamesList = gamesData.games || [];

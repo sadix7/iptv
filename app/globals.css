@@ -142,6 +142,17 @@
   font-weight: 500;
 }
 
+@media (max-width: 640px) {
+  .wc-table th {
+    padding: 8px 6px;
+    font-size: 10px;
+  }
+  .wc-table td {
+    padding: 7px 6px;
+    font-size: 11px;
+  }
+}
+
 .wc-table tr:hover td {
   background: rgba(245, 166, 35, 0.04);
 }

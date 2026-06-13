@@ -100,3 +100,13 @@ This repository does not host, store, retransmit, or own any television channels
 ## 📄 License
 
 This project is open-source software licensed under the **GNU General Public License v3 (GPLv3)**.
+
+---
+
+## Credits
+
+This project is based on [IPTV Player](https://github.com/SHAJON-404/iptv)
+by S. SHAJON, licensed under GPL v3.
+
+Modifications and redesign by Sadik (SadikTV).
+This project is also released under GPL v3.

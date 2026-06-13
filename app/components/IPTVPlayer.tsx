@@ -2543,20 +2543,20 @@ function WorldCupHub() {
               <p className="text-[10px] font-bold tracking-widest text-[#F5A623] uppercase mb-2">🔴 Today&apos;s Matches</p>
               <div className="space-y-2">
                 {todayMatches.map((m: any) => (
-                  <div key={m.id} className="flex items-center justify-between text-sm gold-pulse rounded-lg p-2.5 bg-[#F5A623]/10 border border-[#F5A623]/20">
-                    <span className="font-bold text-white flex items-center gap-1.5">
-                      {m.homeFlag && <img src={m.homeFlag} className="w-8 h-5 object-cover rounded" alt="" />}
-                      <span className="hidden sm:inline">{m.home}</span>
+                  <div key={m.id} className="grid items-center grid-cols-[auto_1fr_auto_1fr_auto_auto] p-2.5 gold-pulse rounded-lg bg-[#F5A623]/10 border border-[#F5A623]/20">
+                    <span className="flex items-center gap-1.5 mr-2">
+                      {m.homeFlag && <img src={m.homeFlag} className="w-8 h-5 object-cover rounded block" alt="" />}
                     </span>
-                    <span className="text-xs text-[#F5A623] font-bold mx-2">
+                    <span className="font-bold text-white text-sm leading-none whitespace-nowrap truncate">{m.home}</span>
+                    <span className="text-xs text-[#F5A623] font-bold text-center px-3 leading-none">
                       {m.homeScore !== null && m.awayScore !== null ? `${m.homeScore} - ${m.awayScore}` : "VS"}
                     </span>
-                    <span className="font-bold text-white flex items-center gap-1.5">
-                      <span className="hidden sm:inline">{m.away}</span>
-                      {m.awayFlag && <img src={m.awayFlag} className="w-8 h-5 object-cover rounded" alt="" />}
+                    <span className="font-bold text-white text-sm leading-none whitespace-nowrap truncate text-right">{m.away}</span>
+                    <span className="flex items-center gap-1.5 ml-2">
+                      {m.awayFlag && <img src={m.awayFlag} className="w-8 h-5 object-cover rounded block" alt="" />}
                     </span>
-                    <div className="flex items-center gap-1.5 ml-2">
-                      <span className="text-[10px] text-zinc-400">{m.time} UTC</span>
+                    <div className="flex items-center gap-1.5 ml-2 whitespace-nowrap">
+                      <span className="text-[10px] text-zinc-400 leading-none">{m.time} UTC</span>
                       {m.live && (
                         <span className="px-1 py-0.5 rounded bg-rose-600 text-white text-[8px] font-extrabold animate-pulse">LIVE</span>
                       )}
@@ -2568,18 +2568,18 @@ function WorldCupHub() {
           )}
 
           {/* Matches Table */}
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto rounded-2xl md:rounded-3xl border border-white/10">
             {matches.length > 0 ? (
             <table className="wc-table w-full">
               <thead>
                 <tr>
-                  <th>Date</th>
-                  <th>Time (UTC)</th>
-                  <th className="text-right">Home</th>
-                  <th className="text-center">Score</th>
-                  <th className="text-left">Away</th>
-                  <th>Venue</th>
-                  <th>Stage</th>
+                  <th className="min-w-[59px]">Date</th>
+                  <th className="min-w-[52px]">Time (UTC)</th>
+                  <th className="min-w-[85px] text-right">Home</th>
+                  <th className="min-w-[46px] text-center">Score</th>
+                  <th className="min-w-[85px] text-left">Away</th>
+                  <th className="min-w-[120px]">Venue</th>
+                  <th className="min-w-[65px]">Stage</th>
                 </tr>
               </thead>
               <tbody>
@@ -2599,27 +2599,27 @@ function WorldCupHub() {
                           )}
                         </span>
                       </td>
-                      <td className="font-bold text-white text-right">
-                        <span className="inline-flex items-center gap-1.5">
+                      <td className="font-bold text-white text-right whitespace-nowrap">
+                        <span className="inline-flex items-center gap-1.5 justify-end">
                           {m.home}
                           {m.homeFlag && <img src={m.homeFlag} className="w-8 h-5 object-cover rounded border border-white/10" alt="" />}
                         </span>
                       </td>
-                      <td className="text-center px-2">
+                      <td className="text-center px-2 whitespace-nowrap">
                         {m.homeScore !== null && m.awayScore !== null ? (
                           <span className="bg-white/10 px-2.5 py-0.5 rounded text-white font-mono text-xs">{m.homeScore} - {m.awayScore}</span>
                         ) : (
                           <span className="text-[#F5A623] font-bold text-[10px]">VS</span>
                         )}
                       </td>
-                      <td className="font-bold text-white text-left">
+                      <td className="font-bold text-white text-left whitespace-nowrap">
                         <span className="inline-flex items-center gap-1.5">
                           {m.awayFlag && <img src={m.awayFlag} className="w-8 h-5 object-cover rounded border border-white/10" alt="" />}
                           {m.away}
                         </span>
                       </td>
-                      <td className="text-zinc-300 text-[11px] whitespace-nowrap truncate max-w-[150px]">{m.venue}</td>
-                      <td>
+                      <td className="text-zinc-300 text-[11px] whitespace-nowrap">{m.venue}</td>
+                      <td className="whitespace-nowrap">
                         <span className={`text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded ${
                           m.stage === "Final" ? "bg-[#F5A623]/20 text-[#F5A623]" :
                           m.stage.includes("Semi") ? "bg-purple-500/20 text-purple-400" :
